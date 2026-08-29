@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Meus horários | Laura Silva{% endblock %}
+{% block content %}
+<section class="dashboard">
+    <div class="dash-head">
+        <div>
+            <span class="section-label">Área da cliente</span>
+            <h1>Meus agendamentos</h1>
+        </div>
+        <a href="{{ url_for('agendar') }}" class="btn primary">Novo agendamento</a>
+    </div>
+
+    <div class="appointments">
+        {% if agendamentos %}
+            {% for item in agendamentos %}
+            <article class="appointment-card">
+                <div class="appointment-date">
+                    <strong>{{ item.data }}</strong>
+                    <span>{{ item.horario }}</span>
+                </div>
+                <div class="appointment-info">
+                    <h3>{{ item.servico }}</h3>
+                    <p>{{ item.valor }}</p>
+                    <span class="status">{{ item.status }}</span>
+                </div>
+                {% if item.status not in ["Cancelado","Concluído"] %}
+                <form method="post" action="{{ url_for('cancelar', id=item.id) }}">
+                    <button class="cancel-btn">Cancelar</button>
+                </form>
+                {% endif %}
+            </article>
+            {% endfor %}
+        {% else %}
+        <div class="empty">
+            <h2>Nenhum horário marcado.</h2>
+            <p>Escolha seu primeiro atendimento.</p>
+            <a href="{{ url_for('agendar') }}" class="btn primary">Agendar agora</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

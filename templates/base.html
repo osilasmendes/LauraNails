@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f3c7d3">
+    <title>{% block title %}Laura Silva Nail Designer{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<header class="site-header">
+    <a href="{{ url_for('inicio') }}" class="brand">
+        <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Laura Silva Nail Designer">
+    </a>
+    <nav>
+        <a href="{{ url_for('inicio') }}">Início</a>
+        <a href="{{ url_for('inicio') }}#trabalhos">Trabalhos</a>
+        <a href="{{ url_for('inicio') }}#servicos">Serviços</a>
+        {% if session.get('usuario_id') %}
+            {% if session.get('perfil') == 'admin' %}
+                <a href="{{ url_for('admin') }}">Painel</a>
+            {% else %}
+                <a href="{{ url_for('agendar') }}">Agendar</a>
+                <a href="{{ url_for('meus_agendamentos') }}">Meus horários</a>
+            {% endif %}
+            <a class="nav-btn outline" href="{{ url_for('logout') }}">Sair</a>
+        {% else %}
+            <a href="{{ url_for('login') }}">Entrar</a>
+            <a class="nav-btn" href="{{ url_for('cadastro') }}">Agendar</a>
+        {% endif %}
+    </nav>
+</header>
+
+{% with msgs = get_flashed_messages(with_categories=true) %}
+{% if msgs %}
+<div class="flash-wrap">
+    {% for categoria, mensagem in msgs %}
+    <div class="flash {{ categoria }}">{{ mensagem }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+{% block content %}{% endblock %}
+
+<footer class="footer">
+    <div>
+        <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Laura Silva">
+        <p>Laura Silva Nail Designer</p>
+    </div>
+    <span>Agendamento online • Atendimento com hora marcada</span>
+</footer>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

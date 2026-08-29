@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Painel administrativo | Laura Silva{% endblock %}
+{% block content %}
+<section class="dashboard admin">
+    <div class="dash-head">
+        <div>
+            <span class="section-label">Administração</span>
+            <h1>Painel da Laura</h1>
+            <p>Acompanhe os próximos atendimentos e atualize cada status.</p>
+        </div>
+        <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Laura Silva">
+    </div>
+
+    <div class="stats">
+        <article><span>Total</span><strong>{{ total }}</strong></article>
+        <article><span>Agendados</span><strong>{{ agendados }}</strong></article>
+        <article><span>Confirmados</span><strong>{{ confirmados }}</strong></article>
+        <article><span>Concluídos</span><strong>{{ concluidos }}</strong></article>
+        <article>
+            <span>Clientes na base</span>
+            <strong>{{ total_clientes }}</strong>
+            <a href="{{ url_for('admin_clientes') }}" style="display:inline-block;margin-top:10px;font-size:12px;font-weight:800;color:#b85f78;">
+                Ver todos os clientes →
+            </a>
+        </article>
+    </div>
+
+    <section style="margin: 0 0 28px;">
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:20px;flex-wrap:wrap;margin-bottom:16px;">
+            <div>
+                <span class="section-label">Relacionamento</span>
+                <h2 style="font-family:Georgia,serif;font-size:34px;margin:7px 0 0;">Histórico de clientes</h2>
+            </div>
+            {% if cliente_top %}
+            <div style="background:#fff0f4;border:1px solid #eedfe4;border-radius:16px;padding:14px 18px;">
+                <span style="display:block;color:#7c6f74;font-size:11px;text-transform:uppercase;letter-spacing:.1em;font-weight:800;">
+                    Cliente que mais agendou
+                </span>
+                <strong style="display:block;margin-top:5px;font-size:17px;">
+                    {{ cliente_top.nome }} — {{ cliente_top.total }}
+                    {% if cliente_top.total == 1 %}agendamento{% else %}agendamentos{% endif %}
+                </strong>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if resumo_clientes %}
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;">
+            {% for cliente in resumo_clientes %}
+            <article style="background:white;border:1px solid #eedfe4;border-radius:20px;padding:20px;box-shadow:0 10px 30px rgba(70,38,49,.06);">
+                <div style="display:flex;justify-content:space-between;gap:12px;align-items:start;">
+                    <div>
+                        <strong style="font-size:17px;">{{ cliente.nome }}</strong>
+                        <span style="display:block;color:#7c6f74;font-size:12px;margin-top:4px;">{{ cliente.whatsapp }}</span>
+                    </div>
+                    {% if cliente_top and cliente.id == cliente_top.id %}
+                    <span style="background:#171214;color:white;padding:6px 9px;border-radius:999px;font-size:10px;font-weight:800;">TOP CLIENTE</span>
+                    {% endif %}
+                </div>
+
+                <div style="margin:18px 0 14px;">
+                    <strong style="font-family:Georgia,serif;font-size:30px;">{{ cliente.total }}</strong>
+                    <span style="color:#7c6f74;font-size:13px;">
+                        {% if cliente.total == 1 %}agendamento{% else %}agendamentos{% endif %}
+                    </span>
+                </div>
+
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+                    <span style="background:#f8dce4;padding:6px 9px;border-radius:999px;font-size:11px;">
+                        {{ cliente.concluidos }} concluído(s)
+                    </span>
+                    {% if cliente.cancelados %}
+                    <span style="background:#fff0f1;padding:6px 9px;border-radius:999px;font-size:11px;">
+                        {{ cliente.cancelados }} cancelado(s)
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div style="border-top:1px solid #eedfe4;padding-top:13px;color:#7c6f74;font-size:12px;line-height:1.6;">
+                    <strong style="color:#2b2326;">Último agendamento</strong><br>
+                    {{ cliente.ultimo_servico }} • {{ cliente.ultima_data }}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="background:white;border:1px solid #eedfe4;border-radius:20px;padding:25px;color:#7c6f74;">
+            Ainda não há histórico de clientes.
+        </div>
+        {% endif %}
+    </section>
+
+    <div class="admin-table-card">
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr><th>Cliente</th><th>WhatsApp</th><th>Data</th><th>Hora</th><th>Serviço</th><th>Valor</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                {% for item in agendamentos %}
+                    <tr>
+                        <td><strong>{{ item.cliente.nome }}</strong></td>
+                        <td>{{ item.cliente.whatsapp }}</td>
+                        <td>{{ item.data }}</td>
+                        <td>{{ item.horario }}</td>
+                        <td>{{ item.servico }}</td>
+                        <td>{{ item.valor }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('admin_status', id=item.id) }}" class="status-form">
+                                <select name="status">
+                                    {% for s in ["Agendado","Confirmado","Concluído","Cancelado"] %}
+                                    <option value="{{ s }}" {% if item.status == s %}selected{% endif %}>{{ s }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit">Salvar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% if item.observacao %}
+                    <tr class="obs"><td colspan="7"><strong>Observação:</strong> {{ item.observacao }}</td></tr>
+                    {% endif %}
+                {% else %}
+                    <tr><td colspan="7" class="empty-cell">Nenhum agendamento registrado.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}

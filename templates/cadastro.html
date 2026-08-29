@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Criar conta | Laura Silva{% endblock %}
+{% block content %}
+<section class="auth-shell">
+    <div class="auth-photo" style="background-image:url('{{ url_for('static', filename='images/trabalho4.jpeg') }}')"></div>
+    <div class="auth-panel">
+        <img class="auth-logo" src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Laura Silva">
+        <span class="section-label">Primeiro acesso</span>
+        <h1>Crie sua conta</h1>
+        <p>Depois do cadastro você poderá escolher serviço, dia e horário.</p>
+        <form method="post" class="form">
+            <label>Nome completo<input type="text" name="nome" required></label>
+            <label>WhatsApp<input type="text" name="whatsapp" placeholder="(81) 99999-9999" required></label>
+            <label>Senha<input type="password" name="senha" minlength="6" required></label>
+            <button class="btn primary wide" type="submit">Criar conta</button>
+        </form>
+        <p class="helper">Já tem conta? <a href="{{ url_for('login') }}">Entrar</a></p>
+    </div>
+</section>
+{% endblock %}

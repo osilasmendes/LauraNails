@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Entrar | Laura Silva{% endblock %}
+{% block content %}
+<section class="auth-shell reverse">
+    <div class="auth-photo" style="background-image:url('{{ url_for('static', filename='images/trabalho8.jpeg') }}')"></div>
+    <div class="auth-panel">
+        <img class="auth-logo" src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Laura Silva">
+        <span class="section-label">Bem-vinda</span>
+        <h1>Entre na sua conta</h1>
+        <p>Use seu WhatsApp e senha. O perfil administrador usa o usuário definido no Render.</p>
+        <form method="post" class="form">
+            <label>WhatsApp ou usuário<input type="text" name="whatsapp" required></label>
+            <label>Senha<input type="password" name="senha" required></label>
+            <button class="btn primary wide" type="submit">Entrar</button>
+        </form>
+        <p class="helper"><a href="{{ url_for('esqueci_senha') }}">Esqueci minha senha</a></p>
+        <p class="helper">Ainda não tem conta? <a href="{{ url_for('cadastro') }}">Criar conta</a></p>
+    </div>
+</section>
+{% endblock %}

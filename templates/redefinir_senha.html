@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Criar nova senha | Laura Silva{% endblock %}
+{% block content %}
+<section class="auth-shell reverse">
+    <div class="auth-photo" style="background-image:url('{{ url_for('static', filename='images/trabalho7.jpeg') }}')"></div>
+    <div class="auth-panel">
+        <img class="auth-logo" src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Laura Silva">
+        <span class="section-label">Nova senha</span>
+        <h1>Crie sua nova senha</h1>
+        <p>Conta de <strong>{{ usuario.nome }}</strong>. Escolha uma senha com pelo menos 6 caracteres.</p>
+
+        <form method="post" class="form">
+            <label>Nova senha
+                <input type="password" name="senha" minlength="6" required autocomplete="new-password">
+            </label>
+            <label>Confirmar nova senha
+                <input type="password" name="confirmar_senha" minlength="6" required autocomplete="new-password">
+            </label>
+            <button class="btn primary wide" type="submit">Alterar senha</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}Agendar | Laura Silva{% endblock %}
+{% block content %}
+<section class="dashboard">
+    <div class="dash-head">
+        <div>
+            <span class="section-label">Olá, {{ session.get('nome') }}</span>
+            <h1>Agende seu horário</h1>
+            <p>Escolha o serviço, a data e um horário disponível.</p>
+        </div>
+        <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Laura Silva">
+    </div>
+
+    <div class="booking-grid">
+        <form method="post" class="booking-card form">
+            <label>Serviço
+                <select name="servico" id="servico" required>
+                    <option value="">Selecione</option>
+                    {% for item in servicos %}
+                    <option value="{{ item.nome }}" data-valor="{{ item.valor }}">
+                        {{ item.nome }} — {{ item.valor }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label>Data
+                <input id="data" type="date" name="data" required>
+            </label>
+
+            <div style="padding:14px 16px;background:#fff7f9;border:1px solid #eedfe4;border-radius:14px;color:#7c6f74;font-size:13px;line-height:1.7;">
+                <strong style="display:block;color:#2b2326;margin-bottom:4px;">Dias e horários de atendimento</strong>
+                Terça, quarta, sexta e sábado: 09:00 • 11:30 • 14:00 • 16:30 • 18:00 • 20:00<br>
+                Quinta-feira: 09:00 • 14:00 • 16:30 • 18:00 • 20:00<br>
+                <span style="font-size:12px;">Não há atendimento às segundas e domingos.</span>
+            </div>
+
+            <label>Horário
+                <select id="horario" name="horario" required disabled>
+                    <option value="">Primeiro escolha uma data</option>
+                </select>
+            </label>
+
+            <div id="sem-horario" style="display:none;padding:16px;background:#fff0f4;border:1px solid #eedfe4;border-radius:14px;line-height:1.6;">
+                <strong style="display:block;margin-bottom:5px;">Não encontrou um horário disponível?</strong>
+                <span style="color:#7c6f74;font-size:13px;">
+                    Você pode consultar diretamente com a Laura a possibilidade de um encaixe.
+                </span>
+            </div>
+
+            <a
+                id="whatsapp-encaixe"
+                href="https://wa.me/5581983066312?text=Ol%C3%A1%20Laura%2C%20n%C3%A3o%20encontrei%20um%20hor%C3%A1rio%20dispon%C3%ADvel%20no%20site%20e%20gostaria%20de%20verificar%20a%20possibilidade%20de%20um%20encaixe."
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn dark wide"
+                style="margin-top:-5px;"
+            >
+                Solicitar possibilidade de encaixe pelo WhatsApp
+            </a>
+
+
+            <label>Forma de pagamento
+                <select name="forma_pagamento" required>
+                    <option value="">Selecione</option>
+                    {% for forma in formas_pagamento %}
+                    <option value="{{ forma }}">{{ forma }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <p style="margin:-4px 0 4px;color:#7c6f74;font-size:12px;">A forma escolhida é apenas uma preferência para o atendimento.</p>
+
+            <label>Observação
+                <textarea name="observacao" rows="4" placeholder="Ex.: cor, formato ou detalhe desejado"></textarea>
+            </label>
+
+
+            <div style="padding:14px 16px;background:#f7f3f5;border:1px solid #eedfe4;border-radius:14px;color:#7c6f74;font-size:13px;line-height:1.6;">
+                <strong style="display:block;color:#2b2326;margin-bottom:4px;">Confirmação pelo WhatsApp</strong>
+                Após confirmar o agendamento, o WhatsApp será aberto com uma mensagem pronta para a Laura.
+                Você só precisará tocar em <strong>Enviar</strong>.
+            </div>
+
+            <button class="btn primary wide" type="submit">Confirmar agendamento</button>
+        </form>
+
+        <aside class="booking-preview">
+            <img src="{{ url_for('static', filename='images/trabalho6.jpeg') }}" alt="Unhas">
+            <div>
+                <span class="section-label">Seu momento</span>
+                <h2>Atendimento com hora marcada.</h2>
+                <p>Escolha um horário livre e acompanhe seus agendamentos pelo próprio site.</p>
+            </div>
+        </aside>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ocupados = {{ ocupados|tojson }};
+const horariosPadrao = {{ horarios_padrao|tojson }};
+const horariosQuinta = {{ horarios_quinta|tojson }};
+
+const dataInput = document.getElementById("data");
+const horarioSelect = document.getElementById("horario");
+const avisoSemHorario = document.getElementById("sem-horario");
+const botaoEncaixe = document.getElementById("whatsapp-encaixe");
+
+const hoje = new Date();
+const ano = hoje.getFullYear();
+const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+const dia = String(hoje.getDate()).padStart(2, "0");
+dataInput.min = `${ano}-${mes}-${dia}`;
+
+function diaSemanaDaData(dataStr) {
+    if (!dataStr) return null;
+    const [a, m, d] = dataStr.split("-").map(Number);
+    return new Date(a, m - 1, d).getDay(); // domingo=0 ... sábado=6
+}
+
+function horariosDoDia(dataStr) {
+    const diaSemana = diaSemanaDaData(dataStr);
+
+    // terça=2, quarta=3, quinta=4, sexta=5, sábado=6
+    if (![2, 3, 4, 5, 6].includes(diaSemana)) {
+        return [];
+    }
+
+    if (diaSemana === 4) {
+        return horariosQuinta;
+    }
+
+    return horariosPadrao;
+}
+
+function atualizarHorarios() {
+    const data = dataInput.value;
+    const diaSemana = diaSemanaDaData(data);
+    const horariosPermitidos = horariosDoDia(data);
+
+    horarioSelect.innerHTML = "";
+    avisoSemHorario.style.display = "none";
+
+    if (!data) {
+        horarioSelect.disabled = true;
+        horarioSelect.innerHTML = '<option value="">Primeiro escolha uma data</option>';
+        return;
+    }
+
+    if (![2, 3, 4, 5, 6].includes(diaSemana)) {
+        horarioSelect.disabled = true;
+        horarioSelect.innerHTML = '<option value="">Sem atendimento neste dia</option>';
+        avisoSemHorario.style.display = "block";
+        return;
+    }
+
+    horarioSelect.disabled = false;
+
+    const inicial = document.createElement("option");
+    inicial.value = "";
+    inicial.textContent = "Selecione";
+    horarioSelect.appendChild(inicial);
+
+    let livres = 0;
+
+    horariosPermitidos.forEach(h => {
+        const ocupado = ocupados.some(x => x.data === data && x.horario === h);
+        const option = document.createElement("option");
+
+        option.value = h;
+        option.disabled = ocupado;
+        option.textContent = ocupado ? `${h} — indisponível` : h;
+
+        if (!ocupado) livres++;
+        horarioSelect.appendChild(option);
+    });
+
+    if (livres === 0) {
+        avisoSemHorario.style.display = "block";
+    }
+
+    // Personaliza a mensagem do WhatsApp com a data escolhida.
+    const mensagem = data
+        ? `Olá Laura, não encontrei um horário disponível para ${data.split("-").reverse().join("/")} no site e gostaria de verificar a possibilidade de um encaixe.`
+        : "Olá Laura, não encontrei um horário disponível no site e gostaria de verificar a possibilidade de um encaixe.";
+
+    botaoEncaixe.href = "https://wa.me/5581983066312?text=" + encodeURIComponent(mensagem);
+}
+
+dataInput.addEventListener("change", atualizarHorarios);
+</script>
+{% endblock %}

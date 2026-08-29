@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+    <div class="hero-slides">
+        {% for i in range(1,9) %}
+        <div class="hero-slide slide-{{ i }}" style="background-image:url('{{ url_for('static', filename='images/trabalho' ~ i ~ '.jpeg') }}')"></div>
+        {% endfor %}
+    </div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <div class="hero-logo-card">
+            <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Laura Silva Nail Designer">
+        </div>
+        <span class="kicker">Beleza • cuidado • estilo</span>
+        <h1>Seu momento de beleza começa aqui.</h1>
+        <p>Escolha seu serviço, veja os valores e reserve seu horário de forma simples e rápida.</p>
+        <div class="hero-actions">
+            <a href="{{ url_for('cadastro') }}" class="btn primary">Agende seu horário</a>
+            <a href="#trabalhos" class="btn glass">Ver trabalhos</a>
+        </div>
+    </div>
+</section>
+
+<section class="section intro">
+    <div class="intro-copy">
+        <span class="section-label">Laura Silva Nail Designer</span>
+        <h2>Unhas feitas com personalidade e cuidado.</h2>
+        <p>Um espaço pensado para valorizar seu estilo, com atendimento personalizado e diferentes técnicas de alongamento, gel e esmaltação.</p>
+    </div>
+    <div class="intro-image">
+        <img src="{{ url_for('static', filename='images/trabalho7.jpeg') }}" alt="Trabalho Laura Silva">
+    </div>
+</section>
+
+<section id="trabalhos" class="section gallery-section">
+    <div class="section-heading">
+        <span class="section-label">Portfólio</span>
+        <h2>Trabalhos recentes</h2>
+        <p>Algumas produções realizadas pela Laura.</p>
+    </div>
+    <div class="gallery">
+        {% for i in range(1,9) %}
+        <figure>
+            <img src="{{ url_for('static', filename='images/trabalho' ~ i ~ '.jpeg') }}" alt="Trabalho {{ i }}">
+        </figure>
+        {% endfor %}
+    </div>
+</section>
+
+<section id="servicos" class="section services-section">
+    <div class="section-heading">
+        <span class="section-label">Serviços</span>
+        <h2>Escolha o seu atendimento</h2>
+        {% if session.get('usuario_id') %}
+        <p>Confira abaixo os serviços e valores disponíveis.</p>
+        {% else %}
+        <p>Conheça os serviços oferecidos. Para consultar os valores, entre na sua conta ou faça seu cadastro.</p>
+        {% endif %}
+    </div>
+
+    {% if session.get('usuario_id') %}
+    <div class="services-layout">
+        <div class="price-list">
+            {% for item in servicos %}
+            <article>
+                <div>
+                    <h3>{{ item.nome }}</h3>
+                    <span>Atendimento com hora marcada</span>
+                </div>
+                <strong>{{ item.valor }}</strong>
+            </article>
+            {% endfor %}
+            {% if session.get('perfil') == 'admin' %}
+            <a href="{{ url_for('admin') }}" class="btn primary wide">Ir para o painel</a>
+            {% else %}
+            <a href="{{ url_for('agendar') }}" class="btn primary wide">Agendar agora</a>
+            {% endif %}
+        </div>
+        <div class="price-image">
+            <img src="{{ url_for('static', filename='images/tabela_precos.jpeg') }}" alt="Tabela de preços Laura Silva">
+        </div>
+    </div>
+    {% else %}
+    <div class="locked-prices">
+        <div class="locked-services">
+            {% for item in servicos %}
+            <article>
+                <span class="service-dot">LS</span>
+                <div>
+                    <h3>{{ item.nome }}</h3>
+                    <p>Valor disponível após o login</p>
+                </div>
+                <span class="locked-value">•••••</span>
+            </article>
+            {% endfor %}
+        </div>
+
+        <aside class="locked-card">
+            <div class="lock-icon">♡</div>
+            <span class="section-label">Área exclusiva</span>
+            <h3>Entre para consultar os valores</h3>
+            <p>Os preços dos serviços são exibidos somente para clientes cadastradas.</p>
+            <a href="{{ url_for('login') }}" class="btn dark wide">Entrar na minha conta</a>
+            <a href="{{ url_for('cadastro') }}" class="btn primary wide">Criar conta grátis</a>
+        </aside>
+    </div>
+    {% endif %}
+</section>
+
+<section class="cta">
+    <span>Seu horário, do seu jeito.</span>
+    <h2>Escolha o melhor dia e venha cuidar de você.</h2>
+    <a href="{{ url_for('cadastro') }}" class="btn dark">Fazer agendamento</a>
+</section>
+
+<!-- AVALIACOES_LAURA_INICIO -->
+
+<section class="reviews-section" aria-label="Avaliações das clientes">
+    <div class="reviews-inner">
+        <span class="section-label">Avaliações</span>
+        <h2>O carinho das nossas clientes</h2>
+        <p class="reviews-subtitle">Experiências de quem já cuidou das unhas com a Laura.</p>
+
+        <div class="reviews-fade">
+            <article class="review-card active">
+                <div class="review-stars" aria-label="5 estrelas">★★★★★</div>
+                <p>“Amei, minhas unhas estão lindas! 😍💅”</p>
+                <strong>Maria Luiza</strong>
+            </article>
+
+            <article class="review-card">
+                <div class="review-stars" aria-label="5 estrelas">★★★★★</div>
+                <p>“Recomendo, muito bom! 😊”</p>
+                <strong>JuJu</strong>
+            </article>
+
+            <article class="review-card">
+                <div class="review-stars" aria-label="5 estrelas">★★★★★</div>
+                <p>“Minha Design Favorita! 😄”</p>
+                <strong>Carla Maria</strong>
+            </article>
+        </div>
+
+        <div class="review-dots" aria-hidden="true">
+            <span class="active"></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+</section>
+
+<footer class="footer footer-home">
+    <div class="footer-brand">
+        <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Laura Silva Nail Designer">
+    </div>
+
+    <div class="footer-contact">
+        <div class="footer-contact-item">
+            <span class="footer-icon">⌖</span>
+            <div>
+                <strong>Endereço</strong>
+                <p>
+                    Rua Carlopolis, 226 — Afogados<br>
+                    Recife — PE
+                </p>
+            </div>
+        </div>
+
+        <div class="footer-contact-item">
+            <span class="footer-icon">◉</span>
+            <div>
+                <strong>WhatsApp</strong>
+                <a
+                    href="https://wa.me/5581983812883"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Abrir conversa no WhatsApp"
+                >
+                    +55 81 98381-2883
+                </a>
+            </div>
+        </div>
+
+        <div class="footer-contact-item">
+            <span class="footer-icon">◎</span>
+            <div>
+                <strong>Instagram</strong>
+                <a
+                    href="https://www.instagram.com/esmalteriasl1?igsi=MWU3ajVjMTh6eXc0aQ=="
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Abrir Instagram da Laura Silva"
+                >
+                    @esmalteriasl1
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-bottom">
+        <span>© 2026 Laura Silva Nail Designer</span>
+        <span>Beleza, cuidado e carinho em cada detalhe.</span>
+    </div>
+</footer>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const cards = document.querySelectorAll(".review-card");
+    const dots = document.querySelectorAll(".review-dots span");
+
+    if (!cards.length) return;
+
+    let atual = 0;
+
+    setInterval(function () {
+        cards[atual].classList.remove("active");
+        if (dots[atual]) dots[atual].classList.remove("active");
+
+        atual = (atual + 1) % cards.length;
+
+        cards[atual].classList.add("active");
+        if (dots[atual]) dots[atual].classList.add("active");
+    }, 4000);
+});
+</script>
+
+<!-- AVALIACOES_LAURA_FIM -->
+
+{% endblock %}

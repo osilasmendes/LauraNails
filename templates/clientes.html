@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Clientes cadastrados | Laura Silva{% endblock %}
+{% block content %}
+<section class="dashboard admin">
+    <div class="dash-head">
+        <div>
+            <span class="section-label">Base de clientes</span>
+            <h1>Clientes cadastrados</h1>
+            <p>Consulte todas as clientes que possuem uma conta no sistema.</p>
+        </div>
+        <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Laura Silva">
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:25px;">
+        <div style="background:white;border:1px solid #eedfe4;border-radius:20px;padding:22px 28px;min-width:220px;">
+            <span style="display:block;color:#7c6f74;font-size:12px;margin-bottom:7px;">TOTAL DE CLIENTES NA BASE</span>
+            <strong style="font-family:Georgia,serif;font-size:42px;">{{ total_clientes }}</strong>
+        </div>
+        <a href="{{ url_for('admin') }}" class="btn dark">← Voltar ao painel</a>
+    </div>
+
+    <div class="admin-table-card">
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>WhatsApp</th>
+                        <th>Cadastro</th>
+                        <th>Agendamentos</th>
+                        <th>Concluídos</th>
+                        <th>Cancelados</th>
+                        <th>Último serviço</th>
+                        <th>Última data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cliente in clientes %}
+                    <tr>
+                        <td><strong>{{ cliente.nome }}</strong></td>
+                        <td>{{ cliente.whatsapp }}</td>
+                        <td>{{ cliente.criado_em.strftime('%d/%m/%Y') if cliente.criado_em else '—' }}</td>
+                        <td><strong>{{ cliente.total }}</strong></td>
+                        <td>{{ cliente.concluidos }}</td>
+                        <td>{{ cliente.cancelados }}</td>
+                        <td>{{ cliente.ultimo_servico }}</td>
+                        <td>{{ cliente.ultima_data }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="empty-cell">Nenhuma cliente cadastrada.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
