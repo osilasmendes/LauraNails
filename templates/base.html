@@ -19,9 +19,11 @@
         {% if session.get('usuario_id') %}
             {% if session.get('perfil') == 'admin' %}
                 <a href="{{ url_for('admin') }}">Painel</a>
+                <a href="{{ url_for('admin_avaliacoes') }}">Avaliações</a>
             {% else %}
                 <a href="{{ url_for('agendar') }}">Agendar</a>
                 <a href="{{ url_for('meus_agendamentos') }}">Meus horários</a>
+                <a href="{{ url_for('avaliar') }}">Avaliar</a>
             {% endif %}
             <a class="nav-btn outline" href="{{ url_for('logout') }}">Sair</a>
         {% else %}
