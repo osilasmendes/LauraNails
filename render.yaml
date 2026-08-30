@@ -2,6 +2,7 @@ services:
   - type: web
     name: laura-nails-v2
     runtime: python
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
@@ -18,5 +19,6 @@ services:
 
 databases:
   - name: laura-nails-db
+    plan: free
     databaseName: laura_nails
     user: laura_nails
