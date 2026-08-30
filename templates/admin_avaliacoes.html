@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Avaliações | Laura Silva{% endblock %}
+{% block content %}
+<section class="dashboard admin">
+    <div class="dash-head">
+        <div>
+            <span class="section-label">Feedback dos clientes</span>
+            <h1>Avaliações da plataforma</h1>
+            <p>Acompanhe as notas e comentários enviados pelos clientes.</p>
+        </div>
+        <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Laura Silva">
+    </div>
+
+    <div class="stats" style="margin-bottom:28px;">
+        <article><span>Total de avaliações</span><strong>{{ total_avaliacoes }}</strong></article>
+        <article><span>Média geral</span><strong>{{ media }} ★</strong></article>
+        {% for nota in range(5, 0, -1) %}
+        <article><span>{{ nota }} estrela{% if nota != 1 %}s{% endif %}</span><strong>{{ distribuicao[nota] }}</strong></article>
+        {% endfor %}
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:18px;">
+        <div>
+            <span class="section-label">Comentários</span>
+            <h2 style="font-family:Georgia,serif;font-size:32px;margin:6px 0 0;">Opinião dos clientes</h2>
+        </div>
+        <a href="{{ url_for('admin') }}" class="btn dark">← Voltar ao painel</a>
+    </div>
+
+    {% if avaliacoes %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
+        {% for item in avaliacoes %}
+        <article style="background:white;border:1px solid #eedfe4;border-radius:20px;padding:22px;box-shadow:0 10px 30px rgba(70,38,49,.06);">
+            <div style="display:flex;justify-content:space-between;align-items:start;gap:12px;">
+                <div>
+                    <strong style="font-size:17px;">{{ item.cliente.nome }}</strong>
+                    <span style="display:block;color:#7c6f74;font-size:12px;margin-top:4px;">{{ item.cliente.whatsapp }}</span>
+                </div>
+                <span style="font-size:20px;color:#d99b20;white-space:nowrap;">{{ '★' * item.estrelas }}{{ '☆' * (5-item.estrelas) }}</span>
+            </div>
+
+            <div style="margin:18px 0;color:#2b2326;line-height:1.65;white-space:pre-wrap;">
+                {% if item.comentario %}{{ item.comentario }}{% else %}<span style="color:#9d8c92;">Sem comentário.</span>{% endif %}
+            </div>
+
+            <div style="border-top:1px solid #eedfe4;padding-top:12px;color:#8b7b81;font-size:11px;">
+                Atualizada em {{ item.atualizado_em.strftime('%d/%m/%Y às %H:%M') if item.atualizado_em else '—' }}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="background:white;border:1px solid #eedfe4;border-radius:20px;padding:28px;color:#7c6f74;">
+        Ainda não há avaliações enviadas pelos clientes.
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
