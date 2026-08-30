@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Avaliar | Laura Silva{% endblock %}
+{% block content %}
+<section class="dashboard" style="max-width:900px;margin:0 auto;">
+    <div class="dash-head" style="align-items:center;">
+        <div>
+            <span class="section-label">Sua opinião importa</span>
+            <h1>Avalie sua experiência</h1>
+            <p>Dê uma nota de 1 a 5 estrelas e, se quiser, conte como foi sua experiência com a plataforma e o atendimento.</p>
+        </div>
+        <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Laura Silva">
+    </div>
+
+    <div style="background:white;border:1px solid #eedfe4;border-radius:22px;padding:24px;box-shadow:0 12px 35px rgba(70,38,49,.06);">
+        <form method="post" class="form">
+            <div style="margin-bottom:20px;">
+                <span style="display:block;font-size:13px;font-weight:800;margin-bottom:10px;">Sua nota</span>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    {% for nota in range(1, 6) %}
+                    <label style="cursor:pointer;">
+                        <input type="radio" name="estrelas" value="{{ nota }}" required
+                               {% if avaliacao and avaliacao.estrelas == nota %}checked{% endif %}
+                               style="position:absolute;opacity:0;pointer-events:none;">
+                        <span class="star-choice" style="display:inline-flex;align-items:center;justify-content:center;width:54px;height:54px;border:1px solid #eedfe4;border-radius:14px;font-size:27px;background:#fff8fa;">★</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                <small style="display:block;margin-top:8px;color:#7c6f74;">1 estrela = muito insatisfeita • 5 estrelas = excelente</small>
+            </div>
+
+            <label>Comentário
+                <textarea name="comentario" rows="6" maxlength="1000" placeholder="Conte para a Laura o que você achou...">{{ avaliacao.comentario if avaliacao else '' }}</textarea>
+            </label>
+
+            <button class="btn primary wide" type="submit">
+                {% if avaliacao %}Atualizar avaliação{% else %}Enviar avaliação{% endif %}
+            </button>
+        </form>
+
+        {% if avaliacao %}
+        <div style="margin-top:18px;padding:14px 16px;border-radius:14px;background:#fff7f9;color:#7c6f74;font-size:13px;">
+            Você já avaliou a plataforma. Pode alterar sua nota ou comentário quando quiser.
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<style>
+.star-choice{color:#d9b3bd;transition:.18s ease}
+label:has(input[name="estrelas"]:checked) .star-choice{background:#171214;color:#ffd166;border-color:#171214;transform:translateY(-2px)}
+@media (hover:hover){label:hover .star-choice{color:#c76f88;border-color:#c76f88}}
+</style>
+{% endblock %}
