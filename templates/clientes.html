@@ -6,7 +6,7 @@
         <div>
             <span class="section-label">Base de clientes</span>
             <h1>Clientes cadastrados</h1>
-            <p>Consulte todas as clientes que possuem uma conta no sistema.</p>
+            <p>Consulte os dados cadastrais e o histórico das clientes.</p>
         </div>
         <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Laura Silva">
     </div>
@@ -24,32 +24,31 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Cliente</th>
-                        <th>WhatsApp</th>
-                        <th>Cadastro</th>
-                        <th>Agendamentos</th>
-                        <th>Concluídos</th>
-                        <th>Cancelados</th>
-                        <th>Último serviço</th>
-                        <th>Última data</th>
+                        <th>Cliente</th><th>WhatsApp</th><th>E-mail</th><th>Cidade</th><th>Cadastro</th><th>Agendamentos</th><th>Ação</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for cliente in clientes %}
                     <tr>
-                        <td><strong>{{ cliente.nome }}</strong></td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:10px;min-width:180px;">
+                                {% if cliente.foto_perfil %}
+                                <img src="{{ cliente.foto_perfil }}" alt="Foto de {{ cliente.nome }}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:1px solid #eedfe4;">
+                                {% else %}
+                                <div style="width:42px;height:42px;border-radius:50%;background:#f8dce4;display:grid;place-items:center;font-weight:800;">{{ cliente.nome[:1]|upper }}</div>
+                                {% endif %}
+                                <strong>{{ cliente.nome }}</strong>
+                            </div>
+                        </td>
                         <td>{{ cliente.whatsapp }}</td>
+                        <td>{{ cliente.email or '—' }}</td>
+                        <td>{{ cliente.cidade or '—' }}</td>
                         <td>{{ cliente.criado_em.strftime('%d/%m/%Y') if cliente.criado_em else '—' }}</td>
                         <td><strong>{{ cliente.total }}</strong></td>
-                        <td>{{ cliente.concluidos }}</td>
-                        <td>{{ cliente.cancelados }}</td>
-                        <td>{{ cliente.ultimo_servico }}</td>
-                        <td>{{ cliente.ultima_data }}</td>
+                        <td><a href="{{ url_for('admin_cliente_detalhes', id=cliente.id) }}" class="btn dark" style="padding:9px 13px;white-space:nowrap;">Ver cadastro</a></td>
                     </tr>
                     {% else %}
-                    <tr>
-                        <td colspan="8" class="empty-cell">Nenhuma cliente cadastrada.</td>
-                    </tr>
+                    <tr><td colspan="7" class="empty-cell">Nenhuma cliente cadastrada.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Preços dos serviços | Laura Silva{% endblock %}
+{% block content %}
+<section class="dashboard admin">
+    <div class="dash-head">
+        <div>
+            <span class="section-label">Administração</span>
+            <h1>Preços dos serviços</h1>
+            <p>Altere os preços exibidos para os próximos agendamentos.</p>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px;">
+        <a href="{{ url_for('admin') }}" class="btn outline">← Voltar ao painel</a>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
+        {% for servico in servicos %}
+        <article style="background:#fff;border:1px solid #eedfe4;border-radius:20px;padding:22px;">
+            <span class="section-label">Serviço</span>
+            <h3 style="margin:8px 0 16px;">{{ servico.nome }}</h3>
+            <form method="POST">
+                <input type="hidden" name="servico_id" value="{{ servico.id }}">
+                <label for="valor-{{ servico.id }}"><strong>Preço</strong></label>
+                <input id="valor-{{ servico.id }}" name="valor" type="text"
+                       value="{{ servico.valor }}" placeholder="R$ 0,00" required
+                       style="width:100%;margin:8px 0 14px;">
+                <button type="submit" class="btn dark">Salvar preço</button>
+            </form>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

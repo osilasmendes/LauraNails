@@ -21,6 +21,24 @@
     </div>
 </section>
 
+
+<!-- PROMOCAO_ADMINISTRAVEL_INICIO -->
+{% if promocao %}
+<section style="max-width:1180px;margin:24px auto 8px;padding:0 20px;">
+    <div style="background:linear-gradient(135deg,#fff0f4,#f8dce4);border:1px solid #e9b9c7;border-radius:22px;padding:22px 24px;box-shadow:0 12px 35px rgba(120,55,75,.10);display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;">
+        <div>
+            <span style="display:inline-block;background:#171214;color:#fff;border-radius:999px;padding:6px 11px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;">{{ promocao.tipo }}</span>
+            <h2 style="margin:10px 0 6px;font-family:Georgia,serif;font-size:28px;">{{ promocao.titulo }}</h2>
+            <p style="margin:0;line-height:1.6;">{{ promocao.mensagem }}</p>
+        </div>
+        {% if session.get('perfil') != 'admin' %}
+        <a href="{{ url_for('agendar', servico=promocao.servico_nome) if session.get('usuario_id') and promocao.servico_nome else (url_for('agendar') if session.get('usuario_id') else url_for('cadastro')) }}" class="btn primary">Agendar agora</a>
+        {% endif %}
+    </div>
+</section>
+{% endif %}
+<!-- PROMOCAO_ADMINISTRAVEL_FIM -->
+
 <section class="section intro">
     <div class="intro-copy">
         <span class="section-label">Laura Silva Nail Designer</span>

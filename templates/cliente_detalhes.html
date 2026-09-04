@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Cadastro de {{ cliente.nome }} | Laura Silva{% endblock %}
+{% block content %}
+<section class="dashboard admin">
+    <div class="dash-head">
+        <div>
+            <span class="section-label">Cadastro da cliente</span>
+            <h1>{{ cliente.nome }}</h1>
+            <p>Dados fornecidos pela cliente e histórico de agendamentos.</p>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px;">
+        <a href="{{ url_for('admin_clientes') }}" class="btn dark">← Clientes</a>
+        <a href="{{ url_for('admin') }}" class="btn outline">Painel</a>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:28px;">
+        <article style="background:#fff;border:1px solid #eedfe4;border-radius:20px;padding:22px;text-align:center;">
+            <span class="section-label">Foto de perfil</span>
+            {% if cliente.foto_perfil %}
+            <img src="{{ cliente.foto_perfil }}" alt="Foto de perfil de {{ cliente.nome }}" style="width:150px;height:150px;border-radius:50%;object-fit:cover;border:4px solid #f8dce4;margin:14px auto 8px;display:block;">
+            <strong>{{ cliente.nome }}</strong>
+            {% else %}
+            <div style="width:150px;height:150px;border-radius:50%;background:#f8dce4;display:grid;place-items:center;font-size:54px;font-weight:800;margin:14px auto 8px;">{{ cliente.nome[:1]|upper }}</div>
+            <strong>{{ cliente.nome }}</strong>
+            <p style="margin-top:8px;">Cliente ainda não adicionou uma foto.</p>
+            {% endif %}
+        </article>
+        <article style="background:#fff;border:1px solid #eedfe4;border-radius:20px;padding:22px;">
+            <span class="section-label">Contato</span>
+            <p><strong>WhatsApp</strong><br>{{ cliente.whatsapp }}</p>
+            <p><strong>E-mail</strong><br>{{ cliente.email or 'Não informado' }}</p>
+            <p><strong>Cadastrada em</strong><br>{{ cliente.criado_em.strftime('%d/%m/%Y às %H:%M') if cliente.criado_em else '—' }}</p>
+        </article>
+        <article style="background:#fff;border:1px solid #eedfe4;border-radius:20px;padding:22px;">
+            <span class="section-label">Endereço</span>
+            <p><strong>Endereço</strong><br>{{ cliente.endereco or 'Não informado' }}{% if cliente.numero %}, {{ cliente.numero }}{% endif %}</p>
+            <p><strong>Complemento</strong><br>{{ cliente.complemento or 'Não informado' }}</p>
+            <p><strong>Bairro / Cidade</strong><br>{{ cliente.bairro or 'Não informado' }}{% if cliente.cidade %} • {{ cliente.cidade }}{% endif %}</p>
+        </article>
+        <article style="background:#fff;border:1px solid #eedfe4;border-radius:20px;padding:22px;">
+            <span class="section-label">Histórico</span>
+            <p><strong>{{ total }}</strong> agendamento(s) válido(s)</p>
+            <p><strong>{{ concluidos }}</strong> concluído(s)</p>
+            <p><strong>{{ cancelados }}</strong> cancelado(s)</p>
+        </article>
+    </div>
+
+    <div class="admin-table-card">
+        <div class="table-scroll">
+            <table>
+                <thead><tr><th>Data</th><th>Hora</th><th>Serviço</th><th>Valor</th><th>Pagamento</th><th>Status</th></tr></thead>
+                <tbody>
+                {% for item in historico %}
+                    <tr>
+                        <td>{{ item.data }}</td><td>{{ item.horario }}</td><td>{{ item.servico }}</td><td>{{ item.valor }}</td><td>{{ item.forma_pagamento or '—' }}</td><td>{{ item.status }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6" class="empty-cell">Esta cliente ainda não possui agendamentos.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}

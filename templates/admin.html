@@ -11,6 +11,33 @@
         <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Laura Silva">
     </div>
 
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px;align-items:center;">
+        <a href="{{ url_for('admin_servicos') }}" class="btn dark"
+           style="display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 22px;border-radius:999px;">
+            Gerenciar preços dos serviços
+        </a>
+
+        <a href="{{ url_for('admin_promocao') }}" class="btn primary"
+           style="display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 22px;border-radius:999px;">
+            Promoções e avisos
+        </a>
+
+        <a href="{{ url_for('admin_clientes') }}"
+           style="display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 22px;border-radius:999px;background:#fff;border:1px solid #e8b8c5;color:#2b2326;font-weight:800;text-decoration:none;">
+            Clientes cadastrados
+        </a>
+
+        <a href="{{ url_for('admin_novo_cliente') }}"
+           style="display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 22px;border-radius:999px;background:#f8dce4;border:1px solid #f0c5d0;color:#2b2326;font-weight:800;text-decoration:none;">
+            + Cadastrar novo cliente
+        </a>
+
+        <a href="{{ url_for('admin_cancelamentos') }}"
+           style="display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 22px;border-radius:999px;background:#fff;border:1px solid #e8b8c5;color:#9a4058;font-weight:800;text-decoration:none;">
+            Histórico de cancelamentos
+        </a>
+    </div>
+
     <div class="stats">
         <article><span>Total</span><strong>{{ total }}</strong></article>
         <article><span>Agendados</span><strong>{{ agendados }}</strong></article>
@@ -24,6 +51,43 @@
             </a>
         </article>
     </div>
+
+    <section style="margin:0 0 28px;">
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:20px;flex-wrap:wrap;margin-bottom:16px;">
+            <div>
+                <span class="section-label">Financeiro</span>
+                <h2 style="font-family:Georgia,serif;font-size:34px;margin:7px 0 0;">Ganhos mensais</h2>
+                <p style="margin:6px 0 0;color:#7c6f74;">Somente agendamentos marcados como concluídos entram nos valores.</p>
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:minmax(260px,1fr) minmax(300px,2fr);gap:16px;align-items:start;">
+            <article style="background:#171214;color:white;border-radius:22px;padding:24px;">
+                <span style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;font-weight:800;opacity:.72;">Ganhos deste mês</span>
+                <strong style="display:block;font-family:Georgia,serif;font-size:38px;margin:10px 0 6px;">{{ ganho_mes_atual }}</strong>
+                <span style="font-size:13px;opacity:.78;">{{ concluidos_mes_atual }} atendimento(s) concluído(s)</span>
+            </article>
+
+            <article style="background:#fff;border:1px solid #eedfe4;border-radius:22px;padding:22px;">
+                <strong style="display:block;margin-bottom:14px;font-size:17px;">Histórico mensal</strong>
+                {% if ganhos_mensais %}
+                    <div style="display:grid;gap:10px;">
+                    {% for ganho in ganhos_mensais %}
+                        <div style="display:flex;justify-content:space-between;gap:18px;align-items:center;padding:12px 0;border-bottom:1px solid #f1e7ea;">
+                            <div>
+                                <strong>{{ ganho.label }}</strong>
+                                <span style="display:block;color:#7c6f74;font-size:12px;margin-top:3px;">{{ ganho.quantidade }} concluído(s)</span>
+                            </div>
+                            <strong style="font-size:18px;">{{ ganho.total }}</strong>
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <p style="color:#7c6f74;margin:0;">Ainda não há agendamentos concluídos para calcular os ganhos.</p>
+                {% endif %}
+            </article>
+        </div>
+    </section>
 
     <section style="margin: 0 0 28px;">
         <div style="display:flex;justify-content:space-between;align-items:end;gap:20px;flex-wrap:wrap;margin-bottom:16px;">
@@ -69,11 +133,6 @@
                     <span style="background:#f8dce4;padding:6px 9px;border-radius:999px;font-size:11px;">
                         {{ cliente.concluidos }} concluído(s)
                     </span>
-                    {% if cliente.cancelados %}
-                    <span style="background:#fff0f1;padding:6px 9px;border-radius:999px;font-size:11px;">
-                        {{ cliente.cancelados }} cancelado(s)
-                    </span>
-                    {% endif %}
                 </div>
 
                 <div style="border-top:1px solid #eedfe4;padding-top:13px;color:#7c6f74;font-size:12px;line-height:1.6;">
@@ -89,6 +148,12 @@
         </div>
         {% endif %}
     </section>
+
+    <div style="margin:0 0 12px;">
+        <span class="section-label">Agenda</span>
+        <h2 style="font-family:Georgia,serif;font-size:30px;margin:6px 0 0;">Agendamentos em andamento</h2>
+        <p style="margin:6px 0 0;color:#7c6f74;font-size:13px;">Agendamentos cancelados ficam no histórico separado.</p>
+    </div>
 
     <div class="admin-table-card">
         <div class="table-scroll">

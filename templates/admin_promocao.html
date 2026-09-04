@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Promoções e avisos | Laura Silva{% endblock %}
+{% block content %}
+<section class="dashboard admin">
+    <div class="dash-head">
+        <div>
+            <span class="section-label">Administração</span>
+            <h1>Promoções e avisos</h1>
+            <p>Crie uma mensagem chamativa para aparecer na página inicial.</p>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px;">
+        <a href="{{ url_for('admin') }}" class="btn outline">← Voltar ao painel</a>
+    </div>
+
+    <article style="max-width:760px;background:#fff;border:1px solid #eedfe4;border-radius:22px;padding:24px;">
+        <form method="POST">
+            <label><strong>Tipo</strong></label>
+            <select name="tipo" style="width:100%;margin:8px 0 18px;">
+                {% for tipo in ["Promoção", "Aviso", "Novidade"] %}
+                <option value="{{ tipo }}" {% if promocao and promocao.tipo == tipo %}selected{% endif %}>{{ tipo }}</option>
+                {% endfor %}
+            </select>
+
+            <label><strong>Título</strong></label>
+            <input type="text" name="titulo" maxlength="120" required
+                   value="{{ promocao.titulo if promocao else '' }}"
+                   placeholder="Ex.: Promoção especial da semana"
+                   style="width:100%;margin:8px 0 18px;">
+
+            <label><strong>Mensagem</strong></label>
+            <textarea name="mensagem" maxlength="500" required rows="5"
+                      placeholder="Ex.: Banho de gel por R$ 70,00 até sábado."
+                      style="width:100%;margin:8px 0 18px;">{{ promocao.mensagem if promocao else '' }}</textarea>
+
+            <div style="padding:18px;background:#fff7f9;border:1px solid #eedfe4;border-radius:16px;margin-bottom:20px;">
+                <strong style="display:block;margin-bottom:12px;">Desconto da promoção</strong>
+                <label>Serviço da promoção</label>
+                <select name="servico_nome" style="width:100%;margin:8px 0 16px;">
+                    <option value="">Selecione o serviço</option>
+                    {% for servico in servicos %}
+                    <option value="{{ servico.nome }}" {% if promocao and promocao.servico_nome == servico.nome %}selected{% endif %}>
+                        {{ servico.nome }} — preço normal {{ servico.valor }}
+                    </option>
+                    {% endfor %}
+                </select>
+
+                <label>Preço promocional</label>
+                <input type="text" name="valor_promocional"
+                       value="{{ promocao.valor_promocional if promocao and promocao.valor_promocional else '' }}"
+                       placeholder="Ex.: R$ 70,00"
+                       style="width:100%;margin:8px 0 6px;">
+                <small style="color:#7c6f74;">Esses dois campos são usados quando o tipo selecionado for “Promoção”.</small>
+            </div>
+
+            <label style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+                <input type="checkbox" name="ativo" {% if not promocao or promocao.ativo %}checked{% endif %}>
+                <strong>Exibir esta mensagem no site</strong>
+            </label>
+
+            <button type="submit" name="acao" value="salvar" class="btn dark">Salvar e publicar</button>
+        </form>
+
+        {% if promocao %}
+        <form method="POST" style="margin-top:14px;"
+              onsubmit="return confirm('Remover esta promoção/aviso do site?');">
+            <input type="hidden" name="acao" value="remover">
+            <button type="submit"
+                    style="background:#fff;color:#b4233c;border:1px solid #e8a8b3;border-radius:999px;padding:11px 18px;font-weight:800;cursor:pointer;">
+                Remover promoção/aviso
+            </button>
+        </form>
+        {% endif %}
+    </article>
+</section>
+{% endblock %}

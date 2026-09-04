@@ -11,18 +11,44 @@
         <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Laura Silva">
     </div>
 
+    {% if promocao and promocao.ativo %}
+    <div style="margin:0 0 20px;padding:18px 20px;background:#fff0f4;border:1px solid #e9b9c7;border-radius:18px;">
+        <span style="display:inline-block;background:#171214;color:#fff;padding:5px 9px;border-radius:999px;font-size:10px;font-weight:800;text-transform:uppercase;">{{ promocao.tipo }}</span>
+        <strong style="display:block;font-size:19px;margin:9px 0 5px;">{{ promocao.titulo }}</strong>
+        <span style="color:#6f6267;">{{ promocao.mensagem }}</span>
+        {% if promocao.tipo == "Promoção" and promocao.servico_nome and promocao.valor_promocional %}
+        <div style="margin-top:10px;font-weight:800;">
+            {{ promocao.servico_nome }} — preço promocional: {{ promocao.valor_promocional }}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <div class="booking-grid">
         <form method="post" class="booking-card form">
             <label>Serviço
                 <select name="servico" id="servico" required>
                     <option value="">Selecione</option>
                     {% for item in servicos %}
-                    <option value="{{ item.nome }}" data-valor="{{ item.valor }}">
+                    {% set em_promocao = promocao and promocao.ativo and promocao.tipo == "Promoção" and promocao.servico_nome == item.nome and promocao.valor_promocional %}
+                    <option value="{{ item.nome }}"
+                            data-valor="{{ item.valor }}"
+                            data-promocao="{{ promocao.valor_promocional if em_promocao else '' }}"
+                            {% if servico_selecionado == item.nome %}selected{% endif %}>
+                        {% if em_promocao %}
+                        {{ item.nome }} — {{ item.valor }} → PROMO {{ promocao.valor_promocional }}
+                        {% else %}
                         {{ item.nome }} — {{ item.valor }}
+                        {% endif %}
                     </option>
                     {% endfor %}
                 </select>
             </label>
+
+            <div id="desconto-promocao" style="display:none;padding:14px 16px;background:#eefaf1;border:1px solid #bcdcc5;border-radius:14px;line-height:1.6;">
+                <strong style="display:block;margin-bottom:4px;">✓ Promoção aplicada ao seu agendamento</strong>
+                <span id="desconto-promocao-texto"></span>
+            </div>
 
             <label>Data
                 <input id="data" type="date" name="data" required>
@@ -48,18 +74,6 @@
                 </span>
             </div>
 
-            <a
-                id="whatsapp-encaixe"
-                href="https://wa.me/5581983066312?text=Ol%C3%A1%20Laura%2C%20n%C3%A3o%20encontrei%20um%20hor%C3%A1rio%20dispon%C3%ADvel%20no%20site%20e%20gostaria%20de%20verificar%20a%20possibilidade%20de%20um%20encaixe."
-                target="_blank"
-                rel="noopener noreferrer"
-                class="btn dark wide"
-                style="margin-top:-5px;"
-            >
-                Solicitar possibilidade de encaixe pelo WhatsApp
-            </a>
-
-
             <label>Forma de pagamento
                 <select name="forma_pagamento" required>
                     <option value="">Selecione</option>
@@ -82,7 +96,20 @@
                 Você só precisará tocar em <strong>Enviar</strong>.
             </div>
 
-            <button class="btn primary wide" type="submit">Confirmar agendamento</button>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch;">
+                <button class="btn primary wide" type="submit">Confirmar agendamento</button>
+
+                <a
+                    id="whatsapp-encaixe"
+                    href="https://wa.me/5581983066312?text=Ol%C3%A1%20Laura%2C%20n%C3%A3o%20encontrei%20um%20hor%C3%A1rio%20dispon%C3%ADvel%20no%20site%20e%20gostaria%20de%20verificar%20a%20possibilidade%20de%20um%20encaixe."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn dark wide"
+                    style="display:flex;align-items:center;justify-content:center;text-align:center;"
+                >
+                    Solicitar possibilidade de encaixe
+                </a>
+            </div>
         </form>
 
         <aside class="booking-preview">
@@ -107,6 +134,41 @@ const dataInput = document.getElementById("data");
 const horarioSelect = document.getElementById("horario");
 const avisoSemHorario = document.getElementById("sem-horario");
 const botaoEncaixe = document.getElementById("whatsapp-encaixe");
+const servicoSelect = document.getElementById("servico");
+const caixaDesconto = document.getElementById("desconto-promocao");
+const textoDesconto = document.getElementById("desconto-promocao-texto");
+
+function moedaParaNumero(valor) {
+    if (!valor) return null;
+    const n = Number(valor.replace("R$", "").replace(/\s/g, "").replace(/\./g, "").replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+}
+
+function atualizarPromocao() {
+    const option = servicoSelect.options[servicoSelect.selectedIndex];
+    if (!option) return;
+
+    const normal = option.dataset.valor || "";
+    const promo = option.dataset.promocao || "";
+
+    if (promo) {
+        const normalNum = moedaParaNumero(normal);
+        const promoNum = moedaParaNumero(promo);
+        let detalhe = `<strong>${normal}</strong> → <strong>${promo}</strong>`;
+        if (normalNum !== null && promoNum !== null && promoNum < normalNum) {
+            const desconto = (normalNum - promoNum).toLocaleString("pt-BR", {style:"currency", currency:"BRL"});
+            detalhe += ` • Você economiza <strong>${desconto}</strong>.`;
+        }
+        textoDesconto.innerHTML = detalhe;
+        caixaDesconto.style.display = "block";
+    } else {
+        caixaDesconto.style.display = "none";
+        textoDesconto.textContent = "";
+    }
+}
+
+servicoSelect.addEventListener("change", atualizarPromocao);
+atualizarPromocao();
 
 const hoje = new Date();
 const ano = hoje.getFullYear();

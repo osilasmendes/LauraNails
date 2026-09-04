@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Histórico de cancelamentos | Laura Silva{% endblock %}
+{% block content %}
+<section class="dashboard admin">
+    <div class="dash-head">
+        <div>
+            <span class="section-label">Administração</span>
+            <h1>Histórico de cancelamentos</h1>
+            <p>Agendamentos cancelados ficam arquivados aqui e não aparecem mais na tela principal.</p>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px;">
+        <a href="{{ url_for('admin') }}" class="btn outline">← Voltar ao painel</a>
+        <div style="background:#fff0f1;border:1px solid #eedfe4;border-radius:999px;padding:10px 15px;font-weight:800;">
+            {{ total_cancelados }} cancelamento(s)
+        </div>
+    </div>
+
+    <div class="admin-table-card">
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>WhatsApp</th>
+                        <th>Data</th>
+                        <th>Hora</th>
+                        <th>Serviço</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for item in cancelados %}
+                    <tr>
+                        <td><strong>{{ item.cliente.nome }}</strong></td>
+                        <td>{{ item.cliente.whatsapp }}</td>
+                        <td>{{ item.data }}</td>
+                        <td>{{ item.horario }}</td>
+                        <td>{{ item.servico }}</td>
+                        <td>{{ item.valor }}</td>
+                        <td><span style="background:#fff0f1;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:800;">Cancelado</span></td>
+                    </tr>
+                    {% if item.observacao %}
+                    <tr class="obs">
+                        <td colspan="7"><strong>Observação:</strong> {{ item.observacao }}</td>
+                    </tr>
+                    {% endif %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="empty-cell">Nenhum agendamento cancelado.</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}

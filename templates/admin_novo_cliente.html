@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Cadastrar cliente | Laura Silva{% endblock %}
+{% block content %}
+<section class="dashboard admin">
+    <div class="dash-head">
+        <div>
+            <span class="section-label">Administração</span>
+            <h1>Cadastrar novo cliente</h1>
+            <p>Cadastre clientes atendidos presencialmente para que também tenham acesso ao site.</p>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px;">
+        <a href="{{ url_for('admin_clientes') }}" class="btn outline">← Clientes cadastrados</a>
+        <a href="{{ url_for('admin') }}" class="btn outline">Painel</a>
+    </div>
+
+    <article style="max-width:820px;background:#fff;border:1px solid #eedfe4;border-radius:22px;padding:24px;box-shadow:0 10px 30px rgba(70,38,49,.05);">
+        <form method="POST" autocomplete="off">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;">
+                <label>
+                    <strong>Nome completo *</strong>
+                    <input type="text" name="nome" required maxlength="120" placeholder="Nome da cliente" style="width:100%;margin-top:8px;">
+                </label>
+
+                <label>
+                    <strong>WhatsApp *</strong>
+                    <input type="text" name="whatsapp" required maxlength="40" placeholder="81999999999" style="width:100%;margin-top:8px;">
+                </label>
+
+                <label>
+                    <strong>Senha inicial *</strong>
+                    <input type="password" name="senha" required minlength="6" placeholder="Mínimo 6 caracteres" style="width:100%;margin-top:8px;">
+                </label>
+
+                <label>
+                    <strong>E-mail</strong>
+                    <input type="email" name="email" maxlength="160" placeholder="cliente@email.com" style="width:100%;margin-top:8px;">
+                </label>
+
+                <label>
+                    <strong>Endereço</strong>
+                    <input type="text" name="endereco" maxlength="180" placeholder="Rua / Avenida" style="width:100%;margin-top:8px;">
+                </label>
+
+                <label>
+                    <strong>Número</strong>
+                    <input type="text" name="numero" maxlength="30" placeholder="Nº" style="width:100%;margin-top:8px;">
+                </label>
+
+                <label>
+                    <strong>Complemento</strong>
+                    <input type="text" name="complemento" maxlength="120" placeholder="Casa, apto..." style="width:100%;margin-top:8px;">
+                </label>
+
+                <label>
+                    <strong>Bairro</strong>
+                    <input type="text" name="bairro" maxlength="120" placeholder="Bairro" style="width:100%;margin-top:8px;">
+                </label>
+
+                <label>
+                    <strong>Cidade</strong>
+                    <input type="text" name="cidade" maxlength="120" placeholder="Cidade" style="width:100%;margin-top:8px;">
+                </label>
+            </div>
+
+            <div style="margin-top:20px;padding:14px 16px;background:#fff7f9;border:1px solid #eedfe4;border-radius:14px;font-size:13px;line-height:1.6;">
+                A cliente poderá entrar depois usando o <strong>WhatsApp</strong> e a <strong>senha inicial</strong> definidos pela Laura. Depois, ela poderá completar ou atualizar os próprios dados em “Meu cadastro”.
+            </div>
+
+            <button type="submit" class="btn dark" style="margin-top:20px;">Cadastrar cliente</button>
+        </form>
+    </article>
+</section>
+{% endblock %}

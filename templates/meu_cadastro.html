@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Meu cadastro | Laura Silva{% endblock %}
+{% block content %}
+<section class="dashboard profile-page">
+    <div class="dash-head profile-edit-head">
+        <div><span class="section-label">Área da cliente</span><h1>Meu cadastro</h1><p>Mantenha seus dados atualizados.</p></div>
+        <a href="{{ url_for('perfil_cliente') }}" class="btn outline">Voltar ao perfil</a>
+    </div>
+
+    <div class="profile-edit-grid">
+        <aside class="profile-photo-card">
+            <div class="profile-avatar-wrap large">
+                {% if usuario.foto_perfil %}
+                    <img id="foto-preview" class="profile-avatar" src="{{ usuario.foto_perfil }}" alt="Foto de perfil">
+                    <div id="foto-fallback" class="profile-avatar profile-avatar-fallback" style="display:none">{{ usuario.nome[:1]|upper }}</div>
+                {% else %}
+                    <img id="foto-preview" class="profile-avatar" alt="Prévia da foto" style="display:none">
+                    <div id="foto-fallback" class="profile-avatar profile-avatar-fallback">{{ usuario.nome[:1]|upper }}</div>
+                {% endif %}
+            </div>
+            <h2>{{ usuario.nome }}</h2>
+            <p>Escolha uma foto JPG, PNG ou WEBP de até 2 MB.</p>
+            {% if usuario.foto_perfil %}
+            <form method="post" action="{{ url_for('remover_foto_perfil') }}">
+                <button type="submit" class="profile-remove-photo">Remover foto atual</button>
+            </form>
+            {% endif %}
+        </aside>
+
+        <form method="post" enctype="multipart/form-data" class="booking-card form profile-form">
+            <div class="form-section-title"><span>Foto de perfil</span></div>
+            <label>Escolher foto
+                <input id="foto-input" type="file" name="foto_perfil" accept="image/jpeg,image/png,image/webp">
+            </label>
+
+            <div class="form-section-title"><span>Informações pessoais</span></div>
+            <div class="form-row two">
+                <label>Nome completo
+                    <input type="text" name="nome" value="{{ usuario.nome }}" required>
+                </label>
+                <label>WhatsApp
+                    <input type="text" name="whatsapp" value="{{ usuario.whatsapp }}" required>
+                </label>
+            </div>
+            <label>E-mail
+                <input type="email" name="email" value="{{ usuario.email or '' }}" placeholder="seunome@email.com">
+            </label>
+
+            <div class="form-section-title"><span>Endereço</span></div>
+            <div class="form-row address-row">
+                <label>Endereço
+                    <input type="text" name="endereco" value="{{ usuario.endereco or '' }}" placeholder="Rua, avenida...">
+                </label>
+                <label>Número
+                    <input type="text" name="numero" value="{{ usuario.numero or '' }}" placeholder="Nº">
+                </label>
+            </div>
+            <label>Complemento
+                <input type="text" name="complemento" value="{{ usuario.complemento or '' }}" placeholder="Apartamento, bloco, referência...">
+            </label>
+            <div class="form-row two">
+                <label>Bairro
+                    <input type="text" name="bairro" value="{{ usuario.bairro or '' }}">
+                </label>
+                <label>Cidade
+                    <input type="text" name="cidade" value="{{ usuario.cidade or '' }}">
+                </label>
+            </div>
+            <button class="btn primary wide" type="submit">Salvar alterações</button>
+        </form>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+const fotoInput = document.getElementById('foto-input');
+const fotoPreview = document.getElementById('foto-preview');
+const fotoFallback = document.getElementById('foto-fallback');
+fotoInput.addEventListener('change', () => {
+    const file = fotoInput.files && fotoInput.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+        alert('A foto deve ter no máximo 2 MB.');
+        fotoInput.value = '';
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+        fotoPreview.src = e.target.result;
+        fotoPreview.style.display = 'block';
+        fotoFallback.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+});
+</script>
+{% endblock %}
