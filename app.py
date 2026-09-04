@@ -55,20 +55,6 @@ class Agendamento(db.Model):
     cliente = db.relationship("Usuario", backref="agendamentos")
 
 
-<<<<<<< HEAD
-class Avaliacao(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    usuario_id = db.Column(db.Integer, db.ForeignKey("usuario.id"), unique=True, nullable=False)
-    estrelas = db.Column(db.Integer, nullable=False)
-    comentario = db.Column(db.String(1000))
-    criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-
-    cliente = db.relationship("Usuario", backref=db.backref("avaliacao", uselist=False))
-
-
-SERVICOS = [
-=======
 class Servico(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(120), unique=True, nullable=False)
@@ -76,7 +62,6 @@ class Servico(db.Model):
 
 
 SERVICOS_PADRAO = [
->>>>>>> a4b7643 (Atualiza painel, promocoes, clientes e financeiro)
     {"nome": "Unha em gel na tips", "valor": "R$ 90,00"},
     {"nome": "Banho de gel", "valor": "R$ 85,00"},
     {"nome": "Postiça realista", "valor": "R$ 50,00"},
@@ -122,22 +107,40 @@ class Promocao(db.Model):
     atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class Avaliacao(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("usuario.id"), unique=True, nullable=False)
+    estrelas = db.Column(db.Integer, nullable=False)
+    comentario = db.Column(db.String(1000))
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    cliente = db.relationship("Usuario", backref=db.backref("avaliacao", uselist=False))
+
+
 HORARIOS_PADRAO = ["09:00", "11:30", "14:00", "16:30", "18:00", "20:00"]
 HORARIOS_QUINTA = ["09:00", "14:00", "16:30", "18:00", "20:00"]
 FORMAS_PAGAMENTO = ["Cartão de crédito", "Cartão de débito", "Pix", "Dinheiro"]
 
 
 def horarios_para_data(data_str):
+    """Retorna os horários permitidos para a data escolhida."""
     try:
         data_obj = datetime.strptime(data_str, "%Y-%m-%d")
     except ValueError:
         return []
 
+    # Python: segunda=0, terça=1, quarta=2, quinta=3, sexta=4, sábado=5, domingo=6
     dia_semana = data_obj.weekday()
+
+    # Atendimento somente de terça a sábado.
     if dia_semana not in [1, 2, 3, 4, 5]:
         return []
+
+    # Quinta-feira não possui o horário das 11:30.
     if dia_semana == 3:
         return HORARIOS_QUINTA
+
     return HORARIOS_PADRAO
 
 
@@ -161,7 +164,9 @@ def admin_required(view):
     return wrapped
 
 
+
 def garantir_coluna_forma_pagamento():
+    """Adiciona a coluna em bancos já existentes sem apagar os agendamentos."""
     inspetor = inspect(db.engine)
     if "agendamento" not in inspetor.get_table_names():
         return
@@ -169,7 +174,9 @@ def garantir_coluna_forma_pagamento():
     colunas = {coluna["name"] for coluna in inspetor.get_columns("agendamento")}
     if "forma_pagamento" not in colunas:
         with db.engine.begin() as conexao:
-            conexao.execute(text("ALTER TABLE agendamento ADD COLUMN forma_pagamento VARCHAR(30)"))
+            conexao.execute(
+                text("ALTER TABLE agendamento ADD COLUMN forma_pagamento VARCHAR(30)")
+            )
 
 
 def garantir_colunas_promocao():
@@ -312,14 +319,11 @@ def login():
         session["usuario_id"] = usuario.id
         session["nome"] = usuario.nome
         session["perfil"] = usuario.perfil
-<<<<<<< HEAD
-        return redirect(url_for("admin" if usuario.perfil == "admin" else "agendar"))
-=======
 
         return redirect(url_for("admin" if usuario.perfil == "admin" else "perfil_cliente"))
->>>>>>> a4b7643 (Atualiza painel, promocoes, clientes e financeiro)
 
     return render_template("login.html")
+
 
 
 @app.route("/esqueci-senha", methods=["GET", "POST"])
@@ -332,6 +336,8 @@ def esqueci_senha():
             flash("Não encontramos uma conta de cliente com esse WhatsApp.", "erro")
             return redirect(url_for("esqueci_senha"))
 
+        # Nesta versão local, a própria cliente confirma o WhatsApp cadastrado
+        # e segue para a criação de uma nova senha.
         session["redefinir_usuario_id"] = usuario.id
         return redirect(url_for("redefinir_senha"))
 
@@ -366,6 +372,7 @@ def redefinir_senha():
         usuario.senha_hash = generate_password_hash(senha)
         db.session.commit()
         session.pop("redefinir_usuario_id", None)
+
         flash("Senha alterada com sucesso. Entre com sua nova senha.", "sucesso")
         return redirect(url_for("login"))
 
@@ -422,7 +429,8 @@ def admin_clientes():
 
     for cliente in clientes:
         historico = Agendamento.query.filter_by(usuario_id=cliente.id).order_by(
-            Agendamento.data.desc(), Agendamento.horario.desc()
+            Agendamento.data.desc(),
+            Agendamento.horario.desc()
         ).all()
 
         validos = [a for a in historico if a.status != "Cancelado"]
@@ -449,69 +457,10 @@ def admin_clientes():
             "ultima_data": ultimo.data if ultimo else "—",
         })
 
-    return render_template("clientes.html", clientes=lista, total_clientes=len(lista))
-
-
-@app.route("/avaliar", methods=["GET", "POST"])
-@login_required
-def avaliar():
-    if session.get("perfil") == "admin":
-        return redirect(url_for("admin_avaliacoes"))
-
-    avaliacao = Avaliacao.query.filter_by(usuario_id=session["usuario_id"]).first()
-
-    if request.method == "POST":
-        try:
-            estrelas = int(request.form.get("estrelas", "0"))
-        except ValueError:
-            estrelas = 0
-        comentario = request.form.get("comentario", "").strip()
-
-        if estrelas < 1 or estrelas > 5:
-            flash("Escolha uma nota de 1 a 5 estrelas.", "erro")
-            return redirect(url_for("avaliar"))
-
-        if len(comentario) > 1000:
-            flash("O comentário pode ter no máximo 1000 caracteres.", "erro")
-            return redirect(url_for("avaliar"))
-
-        if avaliacao:
-            avaliacao.estrelas = estrelas
-            avaliacao.comentario = comentario
-            avaliacao.atualizado_em = datetime.utcnow()
-            mensagem = "Sua avaliação foi atualizada. Obrigada pelo feedback!"
-        else:
-            avaliacao = Avaliacao(
-                usuario_id=session["usuario_id"],
-                estrelas=estrelas,
-                comentario=comentario,
-            )
-            db.session.add(avaliacao)
-            mensagem = "Avaliação enviada com sucesso. Obrigada pelo feedback!"
-
-        db.session.commit()
-        flash(mensagem, "sucesso")
-        return redirect(url_for("avaliar"))
-
-    return render_template("avaliar.html", avaliacao=avaliacao)
-
-
-@app.route("/admin/avaliacoes")
-@admin_required
-def admin_avaliacoes():
-    avaliacoes = Avaliacao.query.order_by(Avaliacao.atualizado_em.desc()).all()
-    total_avaliacoes = len(avaliacoes)
-    media = round(sum(a.estrelas for a in avaliacoes) / total_avaliacoes, 1) if total_avaliacoes else 0
-    distribuicao = {nota: 0 for nota in range(1, 6)}
-    for item in avaliacoes:
-        distribuicao[item.estrelas] += 1
-
     return render_template(
-        "admin_avaliacoes.html",
-        avaliacoes=avaliacoes,
-        total_avaliacoes=total_avaliacoes,
-        media=media,
-        distribuicao=distribuicao,
+        "clientes.html",
+        clientes=lista,
+        total_clientes=len(lista),
     )
 
 
@@ -647,17 +596,16 @@ def agendar():
         horario = request.form.get("horario", "")
         observacao = request.form.get("observacao", "").strip()
         forma_pagamento = request.form.get("forma_pagamento", "").strip()
-<<<<<<< HEAD
-        servico = next((s for s in SERVICOS if s["nome"] == servico_nome), None)
-=======
 
         servico = Servico.query.filter_by(nome=servico_nome).first()
 
->>>>>>> a4b7643 (Atualiza painel, promocoes, clientes e financeiro)
         horarios_validos = horarios_para_data(data)
 
         if not servico or not data or horario not in horarios_validos:
-            flash("Escolha uma data de terça a sábado e um dos horários disponíveis para esse dia.", "erro")
+            flash(
+                "Escolha uma data de terça a sábado e um dos horários disponíveis para esse dia.",
+                "erro"
+            )
             return redirect(url_for("agendar"))
 
         if forma_pagamento not in FORMAS_PAGAMENTO:
@@ -676,6 +624,7 @@ def agendar():
         conflito = Agendamento.query.filter_by(data=data, horario=horario).filter(
             Agendamento.status != "Cancelado"
         ).first()
+
         if conflito:
             flash("Esse horário já foi reservado.", "aviso")
             return redirect(url_for("agendar"))
@@ -715,6 +664,7 @@ def agendar():
         )
         db.session.add(novo)
         db.session.commit()
+
         flash("Agendamento realizado com sucesso!", "sucesso")
 
         usuario = Usuario.query.get(session["usuario_id"])
@@ -735,17 +685,23 @@ def agendar():
             f"Horário: {horario}\n"
             f"Forma de pagamento: {forma_pagamento}\n"
         )
+
         if observacao:
             mensagem_whatsapp += f"Observação: {observacao}\n"
+
         mensagem_whatsapp += "\nAgendamento registrado no site Laura Silva Nail Designer."
 
-        whatsapp_url = "https://wa.me/5581983066312?text=" + quote(mensagem_whatsapp)
+        whatsapp_url = (
+            "https://wa.me/5581983066312?text="
+            + quote(mensagem_whatsapp)
+        )
+
+        # O WhatsApp abre com a mensagem pronta. A cliente só precisa tocar em "Enviar".
         return redirect(whatsapp_url)
 
-    ocupados = [
-        {"data": a.data, "horario": a.horario}
-        for a in Agendamento.query.filter(Agendamento.status != "Cancelado").all()
-    ]
+    ocupados = [{"data": a.data, "horario": a.horario} for a in Agendamento.query.filter(
+        Agendamento.status != "Cancelado"
+    ).all()]
 
     return render_template(
         "agendar.html",
@@ -788,9 +744,6 @@ def cancelar(id):
 @app.route("/admin")
 @admin_required
 def admin():
-<<<<<<< HEAD
-    itens = Agendamento.query.order_by(Agendamento.data.desc(), Agendamento.horario.desc()).all()
-=======
     # A tela principal mostra somente agendamentos que ainda fazem parte da operação.
     # Cancelados ficam exclusivamente no histórico de cancelamentos.
     itens = Agendamento.query.filter(
@@ -800,14 +753,15 @@ def admin():
         Agendamento.horario.desc()
     ).all()
 
->>>>>>> a4b7643 (Atualiza painel, promocoes, clientes e financeiro)
     clientes = Usuario.query.filter_by(perfil="cliente").all()
     resumo_clientes = []
 
     for cliente in clientes:
         historico = Agendamento.query.filter_by(usuario_id=cliente.id).order_by(
-            Agendamento.data.desc(), Agendamento.horario.desc()
+            Agendamento.data.desc(),
+            Agendamento.horario.desc()
         ).all()
+
         validos = [a for a in historico if a.status != "Cancelado"]
         concluidos_cliente = [a for a in validos if a.status == "Concluído"]
 
@@ -900,6 +854,69 @@ def admin_cancelamentos():
         "admin_cancelamentos.html",
         cancelados=cancelados,
         total_cancelados=len(cancelados),
+    )
+
+
+@app.route("/avaliar", methods=["GET", "POST"])
+@login_required
+def avaliar():
+    if session.get("perfil") == "admin":
+        return redirect(url_for("admin_avaliacoes"))
+
+    usuario_id = session["usuario_id"]
+    avaliacao = Avaliacao.query.filter_by(usuario_id=usuario_id).first()
+
+    if request.method == "POST":
+        estrelas = request.form.get("estrelas", type=int)
+        comentario = request.form.get("comentario", "").strip()
+
+        if estrelas not in [1, 2, 3, 4, 5]:
+            flash("Escolha uma nota de 1 a 5 estrelas.", "erro")
+            return redirect(url_for("avaliar"))
+
+        if avaliacao is None:
+            avaliacao = Avaliacao(
+                usuario_id=usuario_id,
+                estrelas=estrelas,
+                comentario=comentario or None,
+            )
+            db.session.add(avaliacao)
+            mensagem = "Avaliação enviada com sucesso. Obrigado pelo feedback!"
+        else:
+            avaliacao.estrelas = estrelas
+            avaliacao.comentario = comentario or None
+            avaliacao.atualizado_em = datetime.utcnow()
+            mensagem = "Avaliação atualizada com sucesso."
+
+        db.session.commit()
+        flash(mensagem, "sucesso")
+        return redirect(url_for("avaliar"))
+
+    return render_template("avaliar.html", avaliacao=avaliacao)
+
+
+@app.route("/admin/avaliacoes")
+@admin_required
+def admin_avaliacoes():
+    avaliacoes = Avaliacao.query.order_by(Avaliacao.atualizado_em.desc()).all()
+    total_avaliacoes = len(avaliacoes)
+
+    if total_avaliacoes:
+        media = round(sum(item.estrelas for item in avaliacoes) / total_avaliacoes, 1)
+    else:
+        media = 0
+
+    distribuicao = {nota: 0 for nota in range(1, 6)}
+    for item in avaliacoes:
+        if item.estrelas in distribuicao:
+            distribuicao[item.estrelas] += 1
+
+    return render_template(
+        "admin_avaliacoes.html",
+        avaliacoes=avaliacoes,
+        total_avaliacoes=total_avaliacoes,
+        media=media,
+        distribuicao=distribuicao,
     )
 
 
