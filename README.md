@@ -3,14 +3,14 @@
 Novo site da Laura Silva Nail Designer, criado com as imagens reais enviadas.
 
 ## Incluído
-- Página inicial com slideshow de fotos reais
+- Página inicial com portfólio de fotos reais
 - Logo da Laura
 - Portfólio
 - Serviços e valores
 - Cadastro de clientes
-- Login
-- Agendamento com bloqueio de horário ocupado
-- Área "Meus agendamentos"
+- Login com WhatsApp e senha ou conta Google
+- Calendário mensal com horários disponíveis e bloqueio de reservas duplicadas
+- Próximos horários e histórico em "Meus agendamentos"
 - Painel administrativo
 - Banco SQLite local
 - PostgreSQL no Render
@@ -52,3 +52,24 @@ Nunca coloque a senha real diretamente no GitHub.
 - Logo substituída por arquivo de melhor qualidade
 - Preços protegidos por login
 - Tabela de preços não aparece para visitantes
+
+
+## Login com Google
+
+Crie um cliente OAuth do tipo **Aplicativo da Web** no Google Cloud.
+Nos URIs de redirecionamento autorizados, cadastre a URL pública do site
+com o caminho `/login/google/callback`. Para testar localmente, cadastre
+também `http://127.0.0.1:5000/login/google/callback`.
+
+Configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e
+`GOOGLE_REDIRECT_URI` no ambiente, além de manter a `SECRET_KEY` estável.
+O botão aparece quando as quatro variáveis estão configuradas. Se o
+aplicativo OAuth estiver em teste, adicione as contas de teste no Google Cloud.
+
+Clientes existentes entram uma vez com WhatsApp e senha e usam **Meu perfil
+→ Vincular conta Google**. O vínculo usa o identificador do Google e mantém
+o mesmo cadastro e o mesmo histórico. O primeiro login de uma nova cliente
+solicita WhatsApp para contato. A administração usa seu acesso atual.
+
+A atualização cria a tabela de vínculos no banco existente na primeira
+requisição. Preserve a configuração de `DATABASE_URL` do serviço atual.

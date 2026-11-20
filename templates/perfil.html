@@ -66,4 +66,18 @@
         </article>
     </div>
 </section>
+{% if google_enabled %}
+<section class="dashboard account-link">
+    <h2>Conta Google</h2>
+    {% if google_vinculado %}
+        <p>Google vinculado.</p>
+    {% else %}
+        <p>Vincule sua conta Google para entrar com ela e acessar seus agendamentos.</p>
+        <form method="post" action="{{ url_for('google_vincular') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn google-btn" type="submit">Vincular conta Google</button>
+        </form>
+    {% endif %}
+</section>
+{% endif %}
 {% endblock %}

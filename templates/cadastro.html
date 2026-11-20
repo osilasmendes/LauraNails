@@ -8,7 +8,12 @@
         <span class="section-label">Primeiro acesso</span>
         <h1>Crie sua conta</h1>
         <p>Depois do cadastro você poderá escolher serviço, dia e horário.</p>
+        {% if google_enabled %}
+        <a class="btn google-btn wide" href="{{ url_for('google_login') }}">Continuar com o Google</a>
+        <p class="access-divider">ou use WhatsApp e senha</p>
+        {% endif %}
         <form method="post" class="form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label>Nome completo<input type="text" name="nome" required></label>
             <label>WhatsApp<input type="text" name="whatsapp" placeholder="(81) 99999-9999" required></label>
             <label>Senha<input type="password" name="senha" minlength="6" required></label>

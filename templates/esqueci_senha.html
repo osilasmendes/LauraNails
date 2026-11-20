@@ -1,22 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Esqueci minha senha | Laura Silva{% endblock %}
+{% block title %}Acesso à conta | Laura Silva{% endblock %}
 {% block content %}
-<section class="auth-shell reverse">
-    <div class="auth-photo" style="background-image:url('{{ url_for('static', filename='images/trabalho8.jpeg') }}')"></div>
-    <div class="auth-panel">
-        <img class="auth-logo" src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Laura Silva">
-        <span class="section-label">Recuperação de acesso</span>
-        <h1>Esqueceu sua senha?</h1>
-        <p>Informe o mesmo WhatsApp usado no cadastro para continuar.</p>
-
-        <form method="post" class="form">
-            <label>WhatsApp cadastrado
-                <input type="text" name="whatsapp" required autocomplete="tel">
-            </label>
-            <button class="btn primary wide" type="submit">Continuar</button>
-        </form>
-
-        <p class="helper"><a href="{{ url_for('login') }}">← Voltar para entrar</a></p>
-    </div>
-</section>
+<main class="dashboard">
+    <h1>Recupere o acesso à sua conta</h1>
+    <p>Se você já vinculou sua conta ao Google, entre com o Google. Para recuperar o acesso por senha, fale com a Laura.</p>
+    <p><a class="btn primary" href="https://wa.me/5581983812883">Falar com a Laura</a>
+    <a class="btn outline" href="{{ url_for('login') }}">Voltar para entrar</a></p>
+</main>
 {% endblock %}

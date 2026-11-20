@@ -1,16 +1,39 @@
 import os
 import base64
+import re
+import secrets
+from zoneinfo import ZoneInfo
 from datetime import datetime
 from functools import wraps
 from urllib.parse import quote
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from authlib.integrations.flask_client import OAuth
+from authlib.integrations.base_client import OAuthError
+from joserfc.errors import JoseError
+from requests.exceptions import RequestException
+from sqlalchemy.exc import IntegrityError
+from flask import abort, jsonify, Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import inspect, text
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "chave-local-laura-nails")
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
+app.config.update(SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_SECURE=bool(os.environ.get("RENDER")))
+RECIFE = ZoneInfo("America/Recife")
+GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI")
+GOOGLE_ENABLED = all(os.environ.get(key) for key in (
+    "SECRET_KEY", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI"
+))
+oauth = OAuth(app)
+if GOOGLE_ENABLED:
+    oauth.register(
+        name="google",
+        client_id=os.environ["GOOGLE_CLIENT_ID"],
+        client_secret=os.environ["GOOGLE_CLIENT_SECRET"],
+        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+        client_kwargs={"scope": "openid email profile", "code_challenge_method": "S256"},
+    )
 
 database_url = os.environ.get("DATABASE_URL", "sqlite:///laura_nails.db")
 if database_url.startswith("postgres://"):
@@ -35,6 +58,12 @@ class Usuario(db.Model):
     senha_hash = db.Column(db.String(255), nullable=False)
     perfil = db.Column(db.String(20), default="cliente", nullable=False)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class ContaGoogle(db.Model):
+    subject = db.Column(db.String(255), primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("usuario.id"), unique=True, nullable=False)
+    usuario = db.relationship("Usuario")
 
 
 class Agendamento(db.Model):
@@ -130,6 +159,9 @@ def horarios_para_data(data_str):
     except ValueError:
         return []
 
+    if data_obj.strftime("%Y-%m-%d") != data_str:
+        return []
+
     # Python: segunda=0, terça=1, quarta=2, quinta=3, sexta=4, sábado=5, domingo=6
     dia_semana = data_obj.weekday()
 
@@ -148,6 +180,8 @@ def login_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
         if not session.get("usuario_id"):
+            if request.endpoint == "agendar":
+                session["agendar_apos_login"] = request.args.get("servico", "")[:120]
             flash("Entre na sua conta para continuar.", "aviso")
             return redirect(url_for("login"))
         return view(*args, **kwargs)
@@ -295,14 +329,41 @@ def cadastro():
         db.session.add(usuario)
         db.session.commit()
 
-        # A cliente já entra na conta e segue direto para o novo perfil.
-        session["usuario_id"] = usuario.id
-        session["nome"] = usuario.nome
-        session["perfil"] = usuario.perfil
-        flash("Conta criada com sucesso! Complete seu cadastro.", "sucesso")
-        return redirect(url_for("perfil_cliente"))
+        return entrar_com_usuario(usuario)
 
     return render_template("cadastro.html")
+
+
+def entrar_com_usuario(usuario):
+    servico = session.get("agendar_apos_login")
+    session.clear()
+    session.update(usuario_id=usuario.id, nome=usuario.nome, perfil=usuario.perfil)
+    if usuario.perfil == "admin":
+        return redirect(url_for("admin"))
+    if servico is not None:
+        return redirect(url_for("agendar", servico=servico or None))
+    return redirect(url_for("meus_agendamentos"))
+
+
+@app.context_processor
+def contexto_acesso():
+    def csrf_token():
+        if "csrf_token" not in session:
+            session["csrf_token"] = secrets.token_urlsafe(32)
+        return session["csrf_token"]
+
+    return {"google_enabled": GOOGLE_ENABLED, "csrf_token": csrf_token}
+
+
+@app.before_request
+def validar_csrf():
+    if request.method == "POST" and request.endpoint in {
+        "login", "cadastro", "google_vincular", "google_completar", "agendar", "cancelar"
+    }:
+        esperado = session.get("csrf_token")
+        recebido = request.form.get("csrf_token", "")
+        if not esperado or not secrets.compare_digest(esperado.encode(), recebido.encode()):
+            abort(400)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -316,67 +377,142 @@ def login():
             flash("Usuário ou senha inválidos.", "erro")
             return redirect(url_for("login"))
 
-        session["usuario_id"] = usuario.id
-        session["nome"] = usuario.nome
-        session["perfil"] = usuario.perfil
-
-        return redirect(url_for("admin" if usuario.perfil == "admin" else "perfil_cliente"))
+        return entrar_com_usuario(usuario)
 
     return render_template("login.html")
 
 
+@app.get("/login/google")
+def google_login():
+    if not GOOGLE_ENABLED:
+        abort(404)
+    if session.get("usuario_id"):
+        return redirect(url_for("perfil_cliente"))
+    session.pop("google_pendente", None)
+    return iniciar_google("entrar")
 
-@app.route("/esqueci-senha", methods=["GET", "POST"])
-def esqueci_senha():
+
+@app.post("/perfil/vincular-google")
+@login_required
+def google_vincular():
+    if not GOOGLE_ENABLED:
+        abort(404)
+    usuario = db.session.get(Usuario, session["usuario_id"])
+    if not usuario or usuario.perfil != "cliente":
+        abort(403)
+    return iniciar_google("vincular", usuario.id)
+
+
+def iniciar_google(modo, usuario_id=None):
+    state = secrets.token_urlsafe(32)
+    try:
+        resposta = oauth.google.authorize_redirect(GOOGLE_REDIRECT_URI, state=state, prompt="select_account")
+    except (OAuthError, RequestException):
+        flash("O login com Google está indisponível. Tente novamente.", "aviso")
+        return redirect(url_for("perfil_cliente" if modo == "vincular" else "login"))
+    session["google_fluxo"] = {"modo": modo, "usuario_id": usuario_id, "state": state}
+    return resposta
+
+
+@app.get("/login/google/callback")
+def google_callback():
+    if not GOOGLE_ENABLED:
+        abort(404)
+    fluxo = session.get("google_fluxo")
+    if not fluxo or fluxo["state"] != request.args.get("state"):
+        return redirect(url_for("login"))
+    session.pop("google_fluxo")
+    try:
+        token = oauth.google.authorize_access_token()
+        identidade = token.get("userinfo") or {}
+        subject = identidade.get("sub")
+        email = identidade.get("email", "")
+        if not subject or len(subject) > 255 or not email or len(email) > 160 or identidade.get("email_verified") is not True:
+            raise OAuthError(error="invalid_userinfo")
+    except (OAuthError, JoseError, RequestException):
+        flash("Não foi possível entrar com o Google. Tente novamente.", "aviso")
+        return redirect(url_for("perfil_cliente" if fluxo["modo"] == "vincular" else "login"))
+
+    conta = db.session.get(ContaGoogle, subject)
+    if fluxo["modo"] == "vincular":
+        usuario = db.session.get(Usuario, fluxo["usuario_id"])
+        if not usuario or usuario.perfil != "cliente" or usuario.id != session.get("usuario_id"):
+            abort(403)
+        if conta and conta.usuario_id == usuario.id:
+            flash("Google já vinculado à sua conta.", "sucesso")
+            return redirect(url_for("perfil_cliente"))
+        db.session.add(ContaGoogle(subject=subject, usuario_id=usuario.id))
+        try:
+            db.session.commit()
+            flash("Google vinculado à sua conta.", "sucesso")
+        except IntegrityError:
+            db.session.rollback()
+            flash("Uma das contas já tem um vínculo com o Google.", "aviso")
+        return redirect(url_for("perfil_cliente"))
+
+    if session.get("usuario_id"):
+        return redirect(url_for("perfil_cliente"))
+    if conta:
+        if conta.usuario.perfil != "cliente":
+            abort(403)
+        return entrar_com_usuario(conta.usuario)
+
+    session["google_pendente"] = {
+        "subject": subject,
+        "email": email,
+        "nome": (identidade.get("name") or "")[:120],
+        "expira": int(datetime.now(RECIFE).timestamp()) + 600,
+    }
+    return redirect(url_for("google_completar"))
+
+
+@app.route("/login/google/completar", methods=["GET", "POST"])
+def google_completar():
+    if not GOOGLE_ENABLED:
+        abort(404)
+    if session.get("usuario_id"):
+        return redirect(url_for("perfil_cliente"))
+    dados = session.get("google_pendente")
+    if not dados or dados["expira"] <= datetime.now(RECIFE).timestamp():
+        session.pop("google_pendente", None)
+        return redirect(url_for("login"))
     if request.method == "POST":
+        nome = request.form.get("nome", "").strip()
         whatsapp = request.form.get("whatsapp", "").strip()
-        usuario = Usuario.query.filter_by(whatsapp=whatsapp, perfil="cliente").first()
+        digitos = re.sub(r"\D", "", whatsapp)
+        if not nome or len(nome) > 120 or len(whatsapp) > 40 or not re.fullmatch(r"(?:55)?[1-9][0-9]{9,10}", digitos):
+            flash("Informe seu nome e um WhatsApp com DDD.", "aviso")
+            return render_template("google_completar.html", dados=dados, whatsapp=whatsapp), 400
 
-        if not usuario:
-            flash("Não encontramos uma conta de cliente com esse WhatsApp.", "erro")
-            return redirect(url_for("esqueci_senha"))
+        numero_local = digitos[2:] if len(digitos) in (12, 13) else digitos
+        existentes = Usuario.query.with_entities(Usuario.whatsapp).filter_by(perfil="cliente")
+        if any(re.sub(r"\D", "", numero) in {numero_local, "55" + numero_local} for (numero,) in existentes):
+            flash("Este WhatsApp já tem cadastro. Entre com sua senha e vincule o Google no perfil.", "aviso")
+            return redirect(url_for("login"))
 
-        # Nesta versão local, a própria cliente confirma o WhatsApp cadastrado
-        # e segue para a criação de uma nova senha.
-        session["redefinir_usuario_id"] = usuario.id
-        return redirect(url_for("redefinir_senha"))
+        usuario = Usuario(
+            nome=nome, whatsapp=numero_local, email=dados["email"],
+            senha_hash=generate_password_hash(secrets.token_urlsafe(32)), perfil="cliente",
+        )
+        db.session.add(usuario)
+        try:
+            db.session.flush()
+            db.session.add(ContaGoogle(subject=dados["subject"], usuario_id=usuario.id))
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash("Já existe um cadastro com esses dados. Entre na sua conta para continuar.", "aviso")
+            return redirect(url_for("login"))
+        return entrar_com_usuario(usuario)
 
-    return render_template("esqueci_senha.html")
+    return render_template("google_completar.html", dados=dados)
 
 
 @app.route("/redefinir-senha", methods=["GET", "POST"])
-def redefinir_senha():
-    usuario_id = session.get("redefinir_usuario_id")
-    if not usuario_id:
-        flash("Inicie a recuperação informando seu WhatsApp.", "aviso")
-        return redirect(url_for("esqueci_senha"))
-
-    usuario = Usuario.query.get(usuario_id)
-    if not usuario or usuario.perfil != "cliente":
-        session.pop("redefinir_usuario_id", None)
-        flash("Não foi possível localizar a conta.", "erro")
-        return redirect(url_for("login"))
-
-    if request.method == "POST":
-        senha = request.form.get("senha", "")
-        confirmar = request.form.get("confirmar_senha", "")
-
-        if len(senha) < 6:
-            flash("A nova senha precisa ter pelo menos 6 caracteres.", "erro")
-            return redirect(url_for("redefinir_senha"))
-
-        if senha != confirmar:
-            flash("As senhas informadas não são iguais.", "erro")
-            return redirect(url_for("redefinir_senha"))
-
-        usuario.senha_hash = generate_password_hash(senha)
-        db.session.commit()
-        session.pop("redefinir_usuario_id", None)
-
-        flash("Senha alterada com sucesso. Entre com sua nova senha.", "sucesso")
-        return redirect(url_for("login"))
-
-    return render_template("redefinir_senha.html", usuario=usuario)
+@app.route("/esqueci-senha", methods=["GET", "POST"])
+def esqueci_senha():
+    session.pop("redefinir_usuario_id", None)
+    return render_template("esqueci_senha.html")
 
 
 @app.route("/admin/clientes/novo", methods=["GET", "POST"])
@@ -504,6 +640,7 @@ def perfil_cliente():
         usuario=usuario,
         total_agendamentos=total_agendamentos,
         proximos=proximos,
+        google_vinculado=ContaGoogle.query.filter_by(usuario_id=usuario.id).first() is not None,
     )
 
 
@@ -584,6 +721,46 @@ def logout():
     return redirect(url_for("inicio"))
 
 
+def agora_recife():
+    return datetime.now(RECIFE).strftime("%Y-%m-%d %H:%M")
+
+
+def bloquear_agenda():
+    # Serializa alterações que podem ocupar um horário, mesmo entre workers.
+    if db.engine.dialect.name == "postgresql":
+        db.session.execute(text("SELECT pg_advisory_xact_lock(708543121)"))
+    elif db.engine.dialect.name == "sqlite":
+        db.session.execute(text("BEGIN IMMEDIATE"))
+
+
+def horario_ocupado(data, horario, exceto=None):
+    consulta = Agendamento.query.filter_by(data=data, horario=horario).filter(
+        Agendamento.status != "Cancelado"
+    )
+    if exceto is not None:
+        consulta = consulta.filter(Agendamento.id != exceto)
+    return consulta.first() is not None
+
+
+@app.get("/agendar/horarios")
+@login_required
+def horarios_disponiveis():
+    data = request.args.get("data", "")
+    permitidos = horarios_para_data(data)
+    if not permitidos:
+        return jsonify(horarios=[])
+    agora = agora_recife()
+    ocupados = {horario for (horario,) in db.session.query(Agendamento.horario).filter(
+        Agendamento.data == data, Agendamento.status != "Cancelado"
+    )}
+    resposta = jsonify(horarios=[
+        hora for hora in permitidos
+        if f"{data} {hora}" > agora and hora not in ocupados
+    ])
+    resposta.headers["Cache-Control"] = "no-store"
+    return resposta
+
+
 @app.route("/agendar", methods=["GET", "POST"])
 @login_required
 def agendar():
@@ -597,6 +774,7 @@ def agendar():
         observacao = request.form.get("observacao", "").strip()
         forma_pagamento = request.form.get("forma_pagamento", "").strip()
 
+        bloquear_agenda()
         servico = Servico.query.filter_by(nome=servico_nome).first()
 
         horarios_validos = horarios_para_data(data)
@@ -612,22 +790,17 @@ def agendar():
             flash("Selecione uma forma de pagamento.", "erro")
             return redirect(url_for("agendar"))
 
-        try:
-            data_escolhida = datetime.strptime(data, "%Y-%m-%d").date()
-            if data_escolhida < datetime.now().date():
-                flash("Não é possível realizar agendamento para uma data passada.", "erro")
-                return redirect(url_for("agendar"))
-        except ValueError:
-            flash("Selecione uma data válida.", "erro")
-            return redirect(url_for("agendar"))
+        if f"{data} {horario}" <= agora_recife():
+            flash("Escolha um horário futuro.", "erro")
+            return redirect(url_for("agendar", servico=servico_nome))
 
-        conflito = Agendamento.query.filter_by(data=data, horario=horario).filter(
-            Agendamento.status != "Cancelado"
-        ).first()
+        if horario_ocupado(data, horario):
+            flash("Esse horário já foi reservado. Escolha outro horário.", "aviso")
+            return redirect(url_for("agendar", servico=servico_nome))
 
-        if conflito:
-            flash("Esse horário já foi reservado.", "aviso")
-            return redirect(url_for("agendar"))
+        if len(observacao) > 500:
+            flash("A observação pode ter até 500 caracteres.", "aviso")
+            return redirect(url_for("agendar", servico=servico_nome))
 
         promocao_ativa = Promocao.query.filter_by(ativo=True).order_by(Promocao.id.desc()).first()
         valor_final = servico.valor
@@ -667,49 +840,13 @@ def agendar():
 
         flash("Agendamento realizado com sucesso!", "sucesso")
 
-        usuario = Usuario.query.get(session["usuario_id"])
-        nome_cliente = usuario.nome if usuario else session.get("nome", "Cliente")
-        data_formatada = data
-        try:
-            data_formatada = datetime.strptime(data, "%Y-%m-%d").strftime("%d/%m/%Y")
-        except ValueError:
-            pass
-
-        mensagem_whatsapp = (
-            "Olá Laura! Acabei de realizar um agendamento pelo site.\n\n"
-            f"Cliente: {nome_cliente}\n"
-            f"Serviço: {servico.nome}\n"
-            f"Valor final: {valor_final}\n"
-            + (f"Preço original: {valor_original}\nDesconto aplicado: {desconto_aplicado}\nPromoção: {promocao_titulo}\n" if desconto_aplicado else "")
-            + f"Data: {data_formatada}\n"
-            f"Horário: {horario}\n"
-            f"Forma de pagamento: {forma_pagamento}\n"
-        )
-
-        if observacao:
-            mensagem_whatsapp += f"Observação: {observacao}\n"
-
-        mensagem_whatsapp += "\nAgendamento registrado no site Laura Silva Nail Designer."
-
-        whatsapp_url = (
-            "https://wa.me/5581983066312?text="
-            + quote(mensagem_whatsapp)
-        )
-
-        # O WhatsApp abre com a mensagem pronta. A cliente só precisa tocar em "Enviar".
-        return redirect(whatsapp_url)
-
-    ocupados = [{"data": a.data, "horario": a.horario} for a in Agendamento.query.filter(
-        Agendamento.status != "Cancelado"
-    ).all()]
+        return redirect(url_for("meus_agendamentos", reserva=novo.id))
 
     return render_template(
         "agendar.html",
         servicos=obter_servicos(),
-        horarios_padrao=HORARIOS_PADRAO,
-        horarios_quinta=HORARIOS_QUINTA,
+        hoje=agora_recife()[:10],
         formas_pagamento=FORMAS_PAGAMENTO,
-        ocupados=ocupados,
         promocao=Promocao.query.filter_by(ativo=True).order_by(Promocao.id.desc()).first(),
         servico_selecionado=request.args.get("servico", ""),
     )
@@ -724,7 +861,25 @@ def meus_agendamentos():
     itens = Agendamento.query.filter_by(usuario_id=session["usuario_id"]).order_by(
         Agendamento.data.asc(), Agendamento.horario.asc()
     ).all()
-    return render_template("meus_agendamentos.html", agendamentos=itens)
+    agora = agora_recife()
+    proximos = [
+        item for item in itens
+        if item.status in ("Agendado", "Confirmado") and f"{item.data} {item.horario}" > agora
+    ]
+    historico = [item for item in reversed(itens) if item not in proximos]
+    reserva_id = request.args.get("reserva", type=int)
+    reserva = next((item for item in proximos if item.id == reserva_id), None)
+    whatsapp_url = None
+    if reserva:
+        data = "/".join(reversed(reserva.data.split("-")))
+        mensagem = (
+            f"Olá Laura! Agendei {reserva.servico} pelo site para {data} às {reserva.horario}. "
+            f"Meu nome é {session['nome']}."
+        )
+        whatsapp_url = "https://wa.me/5581983066312?text=" + quote(mensagem)
+    return render_template(
+        "meus_agendamentos.html", proximos=proximos, historico=historico, whatsapp_url=whatsapp_url
+    )
 
 
 @app.route("/cancelar/<int:id>", methods=["POST"])
@@ -733,6 +888,12 @@ def cancelar(id):
     item = Agendamento.query.get_or_404(id)
     if session.get("perfil") != "admin" and item.usuario_id != session["usuario_id"]:
         flash("Você não pode alterar esse agendamento.", "erro")
+        return redirect(url_for("meus_agendamentos"))
+
+    if session.get("perfil") != "admin" and (
+        item.status not in ("Agendado", "Confirmado") or f"{item.data} {item.horario}" <= agora_recife()
+    ):
+        flash("Esse horário já está no histórico.", "aviso")
         return redirect(url_for("meus_agendamentos"))
 
     item.status = "Cancelado"
@@ -1027,9 +1188,13 @@ def admin_servicos():
 @app.route("/admin/status/<int:id>", methods=["POST"])
 @admin_required
 def admin_status(id):
+    bloquear_agenda()
     item = Agendamento.query.get_or_404(id)
     status = request.form.get("status", "")
     if status in ["Agendado", "Confirmado", "Concluído", "Cancelado"]:
+        if item.status == "Cancelado" and status != "Cancelado" and horario_ocupado(item.data, item.horario, item.id):
+            flash("Outro atendimento já ocupa esse horário.", "aviso")
+            return redirect(url_for("admin"))
         item.status = status
         db.session.commit()
         flash("Status atualizado.", "sucesso")
