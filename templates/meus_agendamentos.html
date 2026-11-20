@@ -1,42 +1,47 @@
 {% extends "base.html" %}
-{% block title %}Meus horários | Laura Silva{% endblock %}
-{% block content %}
-<section class="dashboard">
-    <div class="dash-head">
-        <div>
-            <span class="section-label">Área da cliente</span>
-            <h1>Meus agendamentos</h1>
+{% block title %}Meus agendamentos | Laura Silva{% endblock %}
+{% macro lista(itens, cancelavel=false) %}
+<div class="appointments">
+    {% for item in itens %}
+    <article class="appointment-card">
+        <div class="appointment-date">
+            <strong>{{ item.data.split('-')|reverse|join('/') }}</strong>
+            <span>{{ item.horario }}</span>
         </div>
-        <a href="{{ url_for('agendar') }}" class="btn primary">Novo agendamento</a>
-    </div>
-
-    <div class="appointments">
-        {% if agendamentos %}
-            {% for item in agendamentos %}
-            <article class="appointment-card">
-                <div class="appointment-date">
-                    <strong>{{ item.data }}</strong>
-                    <span>{{ item.horario }}</span>
-                </div>
-                <div class="appointment-info">
-                    <h3>{{ item.servico }}</h3>
-                    <p>{{ item.valor }}</p>
-                    <span class="status">{{ item.status }}</span>
-                </div>
-                {% if item.status not in ["Cancelado","Concluído"] %}
-                <form method="post" action="{{ url_for('cancelar', id=item.id) }}">
-                    <button class="cancel-btn">Cancelar</button>
-                </form>
-                {% endif %}
-            </article>
-            {% endfor %}
-        {% else %}
-        <div class="empty">
-            <h2>Nenhum horário marcado.</h2>
-            <p>Escolha seu primeiro atendimento.</p>
-            <a href="{{ url_for('agendar') }}" class="btn primary">Agendar agora</a>
+        <div class="appointment-info">
+            <h3>{{ item.servico }}</h3>
+            <p>{{ item.valor }}</p>
+            <span class="status">{{ item.status }}</span>
         </div>
+        {% if cancelavel %}
+        <form method="post" action="{{ url_for('cancelar', id=item.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="cancel-btn">Cancelar</button>
+        </form>
         {% endif %}
+    </article>
+    {% endfor %}
+</div>
+{% endmacro %}
+{% block content %}
+<main class="dashboard">
+    <header class="dash-head">
+        <h1>Meus agendamentos</h1>
+        <a href="{{ url_for('agendar') }}" class="btn primary">Novo agendamento</a>
+    </header>
+    {% if whatsapp_url %}
+    <div class="booking-notice">
+        <strong>Seu horário está reservado.</strong>
+        <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer">Avisar a Laura pelo WhatsApp</a>
     </div>
-</section>
+    {% endif %}
+    <section class="history-section">
+        <h2>Próximos horários</h2>
+        {% if proximos %}{{ lista(proximos, true) }}{% else %}<p>Você ainda não tem horários marcados.</p>{% endif %}
+    </section>
+    <section class="history-section">
+        <h2>Histórico</h2>
+        {% if historico %}{{ lista(historico) }}{% else %}<p>Seu histórico está vazio.</p>{% endif %}
+    </section>
+</main>
 {% endblock %}

@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#f3c7d3">
     <title>{% block title %}Laura Silva Nail Designer{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/studio.css') }}">
 </head>
 <body>
 <header class="site-header">
@@ -23,13 +24,13 @@
             {% else %}
                 <a href="{{ url_for('perfil_cliente') }}">Meu perfil</a>
                 <a href="{{ url_for('agendar') }}">Agendar</a>
-                <a href="{{ url_for('meus_agendamentos') }}">Meus horários</a>
+                <a href="{{ url_for('meus_agendamentos') }}">Meus agendamentos</a>
                 <a href="{{ url_for('avaliar') }}">Avaliar</a>
             {% endif %}
             <a class="nav-btn outline" href="{{ url_for('logout') }}">Sair</a>
         {% else %}
             <a href="{{ url_for('login') }}">Entrar</a>
-            <a class="nav-btn" href="{{ url_for('cadastro') }}">Agendar</a>
+            <a class="nav-btn" href="{{ url_for('agendar') }}">Agendar</a>
         {% endif %}
     </nav>
 </header>

@@ -1,0 +1,53 @@
+.studio-home {max-width: 1280px; margin: auto; padding: 38px 5vw 64px;}
+.studio-hero {display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; min-height: 520px; background: #f6e6e9; border-radius: 26px;}
+.studio-intro {padding: clamp(32px, 6vw, 84px); align-self: center;}
+.studio-location {color: #6d4152; font-weight: 700;}
+.studio-intro h1 {margin: 12px 0 22px; font: 400 clamp(44px, 6vw, 84px)/.98 Georgia, serif; letter-spacing: -.045em;}
+.studio-intro h1 em {font-size: .83em; color: #75445a;}
+.studio-intro p {line-height: 1.65; max-width: 36ch;}
+.studio-hero > img {width: 100%; height: 100%; min-height: 0; object-fit: cover;}
+.studio-actions {display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: 22px;}
+.studio-link, .booking-notice a {font-weight: 750; text-decoration: underline; text-underline-offset: .23em;}
+.studio-section {margin-top: 68px; scroll-margin-top: 120px;}
+.studio-section h2, .studio-promo h2 {margin: 0 0 14px; font: 400 clamp(30px, 4vw, 46px)/1.1 Georgia, serif;}
+.studio-services {display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px;}
+.studio-services article {display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: white;}
+.studio-services h3, .studio-services p {margin: 0;}
+.studio-services p {margin-top: 6px; color: #6d4152;}
+.studio-gallery {display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px;}
+.studio-gallery img {width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 14px;}
+.studio-contact, .studio-promo, .booking-notice {display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; padding: 22px; border-radius: 16px; background: #f6e6e9;}
+.studio-contact p, .studio-promo p {margin: 0;}
+.studio-contact .studio-actions {margin: 0;}
+.studio-promo {margin-top: 24px;}
+.google-btn {background: white; color: var(--text); border: 1px solid #9c7887;}
+.access-divider {text-align: center; font-size: 14px;}
+.account-link {padding-top: 0;}
+.booking-layout {display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.1fr); align-items: start; gap: 20px;}
+.booking-fields {display: grid; gap: 16px;}
+.booking-fields h2 {margin: 0; font: 400 28px Georgia, serif;}
+.booking-notice {margin-bottom: 18px;}
+.calendar-nav, .calendar-grid {display: grid; text-align: center; align-items: center; gap: 4px;}
+.calendar-nav {grid-template-columns: 44px 1fr 44px;}
+.calendar-grid {grid-template-columns: repeat(7, minmax(0, 1fr));}
+.calendar-grid span {font-size: 12px;}
+.calendar-nav button, .calendar-grid button {border: 1px solid var(--line); background: white; color: var(--text); min-height: 40px; border-radius: 8px; cursor: pointer;}
+.calendar-nav button:disabled, .calendar-grid button:disabled {background: #f5f1f3; color: #777; cursor: default;}
+.calendar-grid button[aria-pressed="true"] {background: #75445a; color: white; border-color: #75445a;}
+.calendar-status {margin: 0; min-height: 1.4em;}
+.slot-list {display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; margin: 0; padding: 0; border: 0;}
+.slot-list[hidden] {display: none;}
+.form .slot-list label {display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 5px; padding: 8px 4px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer;}
+.form .slot-list input {width: auto; margin: 0; accent-color: #75445a;}
+.booking-fields button:disabled {opacity: .65; cursor: default;}
+.history-section {margin-top: 28px;}
+@media (max-width: 760px) {
+  .studio-home {padding-top: 18px;}
+  .studio-hero, .studio-services, .booking-layout {grid-template-columns: 1fr;}
+  .studio-hero {min-height: 0;}
+  .studio-hero > img {max-height: 360px;}
+  .studio-gallery {grid-template-columns: repeat(2, minmax(0,1fr));}
+}
+.studio-price-photo {margin-top: 14px;}
+.studio-price-photo summary {cursor: pointer; text-decoration: underline; text-underline-offset: .23em;}
+.studio-price-photo img {max-width: min(100%, 420px); margin-top: 12px; border-radius: 14px;}
