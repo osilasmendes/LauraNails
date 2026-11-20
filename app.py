@@ -5,6 +5,7 @@ import secrets
 from zoneinfo import ZoneInfo
 from datetime import datetime
 from functools import wraps
+from threading import Lock
 from urllib.parse import quote
 
 from authlib.integrations.flask_client import OAuth
@@ -199,65 +200,18 @@ def admin_required(view):
 
 
 
-def garantir_coluna_forma_pagamento():
-    """Adiciona a coluna em bancos já existentes sem apagar os agendamentos."""
-    inspetor = inspect(db.engine)
-    if "agendamento" not in inspetor.get_table_names():
-        return
-
-    colunas = {coluna["name"] for coluna in inspetor.get_columns("agendamento")}
-    if "forma_pagamento" not in colunas:
-        with db.engine.begin() as conexao:
-            conexao.execute(
-                text("ALTER TABLE agendamento ADD COLUMN forma_pagamento VARCHAR(30)")
-            )
-
-
-def garantir_colunas_promocao():
-    """Adiciona os campos de serviço/preço promocional sem apagar promoções existentes."""
-    inspetor = inspect(db.engine)
-    if "promocao" not in inspetor.get_table_names():
-        return
-
-    colunas = {coluna["name"] for coluna in inspetor.get_columns("promocao")}
-    novas_colunas = {
-        "servico_nome": "VARCHAR(120)",
-        "valor_promocional": "VARCHAR(30)",
-    }
-
-    with db.engine.begin() as conexao:
-        for nome, tipo in novas_colunas.items():
-            if nome not in colunas:
-                conexao.execute(text(f"ALTER TABLE promocao ADD COLUMN {nome} {tipo}"))
-
-
-def garantir_colunas_promocao_agendamento():
-    """Registra preço original e desconto nos novos agendamentos, preservando os antigos."""
-    inspetor = inspect(db.engine)
-    if "agendamento" not in inspetor.get_table_names():
-        return
-
-    colunas = {coluna["name"] for coluna in inspetor.get_columns("agendamento")}
-    novas_colunas = {
+COLUNAS_LEGADAS = {
+    "agendamento": {
+        "forma_pagamento": "VARCHAR(30)",
         "valor_original": "VARCHAR(30)",
         "desconto_aplicado": "VARCHAR(30)",
         "promocao_titulo": "VARCHAR(120)",
-    }
-
-    with db.engine.begin() as conexao:
-        for nome, tipo in novas_colunas.items():
-            if nome not in colunas:
-                conexao.execute(text(f"ALTER TABLE agendamento ADD COLUMN {nome} {tipo}"))
-
-
-def garantir_colunas_usuario():
-    """Adiciona os campos do perfil em bancos existentes sem apagar clientes."""
-    inspetor = inspect(db.engine)
-    if "usuario" not in inspetor.get_table_names():
-        return
-
-    colunas = {coluna["name"] for coluna in inspetor.get_columns("usuario")}
-    novas_colunas = {
+    },
+    "promocao": {
+        "servico_nome": "VARCHAR(120)",
+        "valor_promocional": "VARCHAR(30)",
+    },
+    "usuario": {
         "email": "VARCHAR(160)",
         "endereco": "VARCHAR(180)",
         "numero": "VARCHAR(30)",
@@ -265,39 +219,55 @@ def garantir_colunas_usuario():
         "bairro": "VARCHAR(120)",
         "cidade": "VARCHAR(120)",
         "foto_perfil": "TEXT",
-    }
+    },
+}
 
-    with db.engine.begin() as conexao:
-        for nome, tipo in novas_colunas.items():
-            if nome not in colunas:
-                conexao.execute(text(f"ALTER TABLE usuario ADD COLUMN {nome} {tipo}"))
+banco_pronto = False
+banco_lock = Lock()
 
 
-def criar_admin():
+def criar_admin(conexao):
     admin_user = os.environ.get("ADMIN_USER", "laura.laura")
     admin_password = os.environ.get("ADMIN_PASSWORD")
 
     if admin_password:
-        existente = Usuario.query.filter_by(whatsapp=admin_user).first()
+        tabela = Usuario.__table__
+        existente = conexao.execute(
+            tabela.select().with_only_columns(tabela.c.id).where(tabela.c.whatsapp == admin_user)
+        ).first()
         if not existente:
-            admin = Usuario(
+            conexao.execute(tabela.insert().values(
                 nome="Laura Silva",
                 whatsapp=admin_user,
                 senha_hash=generate_password_hash(admin_password),
                 perfil="admin",
-            )
-            db.session.add(admin)
-            db.session.commit()
+            ))
 
 
 @app.before_request
 def garantir_banco():
-    db.create_all()
-    garantir_coluna_forma_pagamento()
-    garantir_colunas_usuario()
-    garantir_colunas_promocao()
-    garantir_colunas_promocao_agendamento()
-    criar_admin()
+    global banco_pronto
+
+    if banco_pronto or request.endpoint in (None, "static"):
+        return
+    with banco_lock:
+        if banco_pronto:
+            return
+        with db.engine.begin() as conexao:
+            if conexao.dialect.name == "postgresql":
+                conexao.execute(text("SELECT pg_advisory_xact_lock(708543122)"))
+            elif conexao.dialect.name == "sqlite":
+                conexao.execute(text("BEGIN IMMEDIATE"))
+
+            db.metadata.create_all(bind=conexao)
+            inspetor = inspect(conexao)
+            for tabela, novas_colunas in COLUNAS_LEGADAS.items():
+                colunas = {coluna["name"] for coluna in inspetor.get_columns(tabela)}
+                for nome, tipo in novas_colunas.items():
+                    if nome not in colunas:
+                        conexao.execute(text(f"ALTER TABLE {tabela} ADD COLUMN {nome} {tipo}"))
+            criar_admin(conexao)
+        banco_pronto = True
 
 
 @app.route("/")
@@ -1202,11 +1172,4 @@ def admin_status(id):
 
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-        garantir_coluna_forma_pagamento()
-        garantir_colunas_usuario()
-        garantir_colunas_promocao()
-        garantir_colunas_promocao_agendamento()
-        criar_admin()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)

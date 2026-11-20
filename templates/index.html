@@ -12,7 +12,7 @@
                 <button class="btn google-btn" id="install-app" type="button" hidden>Instalar LauraNails</button>
             </div>
         </div>
-        <img src="{{ url_for('static', filename='images/trabalho7.jpeg') }}" alt="Unhas feitas por Laura Silva" fetchpriority="high">
+        <img src="{{ url_for('static', filename='images/trabalho7.webp') }}" alt="Unhas feitas por Laura Silva" fetchpriority="high">
     </section>
 
     {% if promocao %}
@@ -51,7 +51,7 @@
         <h2>Trabalhos da Laura</h2>
         <div class="studio-gallery">
             {% for i in range(1,9) %}
-            <img src="{{ url_for('static', filename='images/trabalho' ~ i ~ '.jpeg') }}" alt="Trabalho de unhas {{ i }} da Laura Silva" loading="lazy">
+            <img src="{{ url_for('static', filename='images/trabalho' ~ i ~ '.webp') }}" alt="Trabalho de unhas {{ i }} da Laura Silva" loading="lazy">
             {% endfor %}
         </div>
     </section>
