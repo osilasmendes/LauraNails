@@ -9,6 +9,7 @@
             <div class="studio-actions">
                 <a class="btn primary" href="{{ url_for('admin' if session.get('perfil') == 'admin' else 'agendar') }}">{{ 'Ir para o painel' if session.get('perfil') == 'admin' else 'Agendar horário' }}</a>
                 <a class="studio-link" href="#servicos">Ver serviços</a>
+                <button class="btn google-btn" id="install-app" type="button" hidden>Instalar LauraNails</button>
             </div>
         </div>
         <img src="{{ url_for('static', filename='images/trabalho7.jpeg') }}" alt="Unhas feitas por Laura Silva" fetchpriority="high">
@@ -63,4 +64,8 @@
         </div>
     </section>
 </main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/install.js') }}" defer></script>
 {% endblock %}
